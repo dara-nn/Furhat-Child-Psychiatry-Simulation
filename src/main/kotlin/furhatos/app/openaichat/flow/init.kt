@@ -3,11 +3,21 @@ package furhatos.app.openaichat.flow
 import furhatos.app.openaichat.flow.chatbot.geminiServiceKey
 import furhatos.app.openaichat.setting.activate
 import furhatos.app.openaichat.setting.hostPersona
+import furhatos.event.requests.RequestConfigElevenlabs
+import furhatos.event.responses.ResponseConfigElevenlabs
 import furhatos.flow.kotlin.State
 import furhatos.flow.kotlin.state
 import furhatos.flow.kotlin.users
 
+val elevenLabsApiKey: String = "<ELEVENLABS_KEY_REDACTED>"
+
 val Init: State = state() {
+
+    onEvent<RequestConfigElevenlabs>(instant = true) {
+        println("Init: sending ElevenLabs API key")
+        send(ResponseConfigElevenlabs.Builder().apiKey(elevenLabsApiKey).buildEvent())
+    }
+
     init {
         /** Check API key for the Gemini language model has been set */
         if (geminiServiceKey.isEmpty()) {
@@ -33,4 +43,3 @@ val InitFlow: State = state() {
     }
 
 }
-

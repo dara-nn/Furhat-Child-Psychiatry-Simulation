@@ -1,10 +1,21 @@
 package furhatos.app.openaichat.flow
 
 import furhatos.event.actions.ActionLipSync
+import furhatos.event.requests.RequestConfigElevenlabs
+import furhatos.event.responses.ResponseConfigElevenlabs
 import furhatos.flow.kotlin.*
 
 
 val Parent: State = state {
+
+    onEvent<RequestConfigElevenlabs>(instant = true) {
+        if (elevenLabsApiKey.isBlank()) {
+            println("Missing ELEVENLABS_API_KEY. ElevenLabs voices may fall back to a default voice.")
+            return@onEvent
+        }
+        println("Sending ElevenLabs API key (len=${elevenLabsApiKey.length}) from Parent")
+        send(ResponseConfigElevenlabs.Builder().apiKey(elevenLabsApiKey).buildEvent())
+    }
 
     onUserLeave(instant = true) {
         if (users.count > 0) {
