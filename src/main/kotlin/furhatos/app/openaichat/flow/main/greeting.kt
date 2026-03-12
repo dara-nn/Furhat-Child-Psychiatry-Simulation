@@ -26,14 +26,23 @@ val InitialInteraction: State = state(Parent) {
 
     fun FlowControlRunner.askToStartSimulation() {
         askedToStartSimulation = true
-        furhat.ask(
+        furhat.say(
             "I’m a child-psychiatry training assistant. " +
                 "I can role-play as different child patients so you can practise clinical interviews. " +
                 "Would you like to start?"
         )
+        reentry()
     }
 
     onResponse<Yes> {
+        if (askedToStartSimulation) {
+            goto(ChoosePersona())
+        } else {
+            askToStartSimulation()
+        }
+    }
+
+    onResponse("yes", "yeah", "yep", "sure", "ok", "okay") {
         if (askedToStartSimulation) {
             goto(ChoosePersona())
         } else {
@@ -50,9 +59,22 @@ val InitialInteraction: State = state(Parent) {
         }
     }
 
+    onResponse("no", "nope", "not now") {
+        if (askedToStartSimulation) {
+            furhat.say("Okay, let me know if you change your mind.")
+            goto(Idle)
+        } else {
+            askToStartSimulation()
+        }
+    }
+
     // any response to the greeting triggers the self-introduction and question
     onResponse {
-        askToStartSimulation()
+        if (askedToStartSimulation) {
+            goto(ChoosePersona())
+        } else {
+            askToStartSimulation()
+        }
     }
 
     onNoResponse {
@@ -82,27 +104,38 @@ fun ChoosePersona() = state(Parent) {
         presentPersonas()
     }
 
+    fun FlowControlRunner.startPersona(persona: Persona) {
+        val intro = listOf(
+            "Okay, I will let you talk to ${persona.name}.",
+            "Okay, let's have a chat with ${persona.name}.",
+            "Sure, we can talk to ${persona.name}."
+        ).random()
+        val outro = listOf(
+            "When you want to end the conversation, just say goodbye, stop, or that's enough.",
+            "To end the conversation, just say goodbye or stop."
+        ).random()
+        furhat.say("$intro $outro")
+        currentPersona = persona
+        goto(MainChat)
+    }
+
     for (persona in personas) {
-        onResponse(persona.intent) {
-            furhat.say {
-                random {
-                    +"Okay, I will let you talk to ${persona.name}."
-                    +"Okay, let's have a chat with ${persona.name}."
-                    +"Sure, we can talk to ${persona.name}."
-                }
-                random {
-                    +"When you want to end the conversation, just say goodbye, stop, or that's enough."
-                    +"To end the conversation, just say goodbye or stop."
-                }
-            }
-            currentPersona = persona
-            goto(MainChat)
-        }
+        onResponse(persona.intent) { startPersona(persona) }
     }
 
     onResponse {
-        val names = personas.dropLast(1).joinToString(", ") { it.name } + ", or " + personas.last().name
-        furhat.ask("Sorry, I didn't catch that. Please say one of the names: $names.")
+        // Substring fallback — handles "I want to talk to Noah", "Lena", etc.
+        val text = it.text.lowercase()
+        val matched = personas.find { persona ->
+            text.contains(persona.name.lowercase()) ||
+            persona.otherNames.any { alias -> text.contains(alias.lowercase()) }
+        }
+        if (matched != null) {
+            startPersona(matched)
+        } else {
+            val names = personas.dropLast(1).joinToString(", ") { it.name } + ", or " + personas.last().name
+            furhat.ask("Sorry, I didn't catch that. Please say one of the names: $names.")
+        }
     }
 
     onNoResponse {

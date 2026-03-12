@@ -1,15 +1,25 @@
 package furhatos.app.openaichat.flow
 
+import furhatos.app.openaichat.flow.elevenLabsApiKey
 import furhatos.app.openaichat.setting.activate
 import furhatos.app.openaichat.setting.hostPersona
-import furhatos.nlu.common.*
+import furhatos.event.requests.RequestConfigElevenlabs
+import furhatos.event.responses.ResponseConfigElevenlabs
 import furhatos.flow.kotlin.*
-import furhatos.records.Location
 
 val Idle : State = state {
     onEntry {
         activate(hostPersona)
         furhat.attendNobody()
+    }
+
+    onEvent<RequestConfigElevenlabs>(instant = true) {
+        if (elevenLabsApiKey.isBlank()) {
+            println("Missing ELEVENLABS_API_KEY. ElevenLabs voices may fall back to a default voice.")
+            return@onEvent
+        }
+        println("Sending ElevenLabs API key (len=${elevenLabsApiKey.length}) from Idle")
+        send(ResponseConfigElevenlabs.Builder().apiKey(elevenLabsApiKey).buildEvent())
     }
 
     onUserEnter {
@@ -18,8 +28,4 @@ val Idle : State = state {
     }
 
 }
-
-
-
-
 

@@ -3,10 +3,11 @@ package furhatos.app.openaichat.setting
 import furhatos.app.openaichat.flow.chatbot.GeminiAIChatbot
 import furhatos.flow.kotlin.FlowControlRunner
 import furhatos.flow.kotlin.furhat
-import furhatos.flow.kotlin.voice.AcapelaVoice
-import furhatos.flow.kotlin.voice.PollyNeuralVoice
+import furhatos.flow.kotlin.voice.ElevenlabsVoice
 import furhatos.flow.kotlin.voice.Voice
 import furhatos.nlu.SimpleIntent
+import furhatos.util.Gender
+import furhatos.util.Language
 
 class Persona(
     val name: String,
@@ -30,6 +31,8 @@ class Persona(
 }
 
 fun FlowControlRunner.activate(persona: Persona) {
+    println("Activating persona '${persona.name}' with voice=${persona.voice} (synth=${persona.voice.synthesizerName}, lang=${persona.voice.language}, gender=${persona.voice.gender})")
+    println("Activating persona '${persona.name}' with voice=${persona.voice.name}")
     furhat.voice = persona.voice
 
     for (face in persona.face) {
@@ -43,8 +46,8 @@ fun FlowControlRunner.activate(persona: Persona) {
 val hostPersona = Persona(
     name = "Host",
     desc = "host",
-    face = listOf("Alex", "default"),
-    voice = PollyNeuralVoice("Matthew")
+    face = listOf("Isabel", "Alex", "default"),
+    voice = ElevenlabsVoice("SarahHost - Approachable and Informative", Gender.FEMALE, Language.MULTILINGUAL)
 )
 
 val personas = listOf(
@@ -53,8 +56,8 @@ val personas = listOf(
         otherNames = listOf("easy anxiety case", "anxiety case", "social anxiety", "Lena", "Leena", "Lyna"),
         desc = "12 year old with social anxiety",
         intro = "Hi, I am Lina. I get a bit nervous with new people, but I will try.",
-        face = listOf("Isabel"),
-        voice = PollyNeuralVoice("Salli"),
+        face = listOf("Isabel", "default"),
+        voice = ElevenlabsVoice("Ash - Conversational, Kind and Bright", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
             You are Lina, a 12-year-old Finnish girl with social anxiety. You were born and raised in Finland. This is an easy difficulty case.
             Personality and communication style:
@@ -76,14 +79,14 @@ val personas = listOf(
         """.trimIndent()
     ),
     Persona(
-        name = "Noah",
-        otherNames = listOf("moderate depression case", "depression case", "low mood", "Noa", "Nowa", "Noel"),
+        name = "Lauri",
+        otherNames = listOf("moderate depression case", "depression case", "low mood", "Lori", "Laury", "Laurent"),
         desc = "14 year old with depression symptoms",
         intro = "Hi.",
-        face = listOf("James"),
-        voice = PollyNeuralVoice("Joey"),
+        face = listOf("James", "default"),
+        voice = ElevenlabsVoice("LauriVoiceV1", Gender.NEUTRAL, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Noah, a 14-year-old Finnish boy with depression symptoms. You were born and raised in Finland. This is a medium difficulty case.
+            You are Lauri, a 14-year-old Finnish boy with depression symptoms. You were born and raised in Finland. This is a medium difficulty case.
             Personality and communication style:
             - You are flat and low-energy. You give short answers and do not elaborate unless asked a follow-up question.
             - You are not hostile, just tired and indifferent. You answer questions but don't try to be helpful.
@@ -107,8 +110,8 @@ val personas = listOf(
         otherNames = listOf("somatic anxiety case", "worry case", "generalized anxiety", "Saara", "Sarah"),
         desc = "10 year old with generalized anxiety and stomach aches",
         intro = "Hi, I am Sara.",
-        face = listOf("Isabel"),
-        voice = PollyNeuralVoice("Kimberly"),
+        face = listOf("Isabel", "default"),
+        voice = ElevenlabsVoice("Liza - Pleasant, Smooth and Subdued", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
             You are Sara, a 10-year-old girl with generalized anxiety and stomach aches. Your family is Iranian-Finnish and you have grown up in Finland. This is a medium difficulty case.
             Personality and communication style:
@@ -136,8 +139,8 @@ val personas = listOf(
         otherNames = listOf("hard depression case", "complex depression case", "irritable depression", "Elijah", "Eli", "Alias"),
         desc = "16 year old with depression, irritability, and poor sleep",
         intro = "",
-        face = listOf("James"),
-        voice = PollyNeuralVoice("Liam"),
+        face = listOf("James", "default"),
+        voice = ElevenlabsVoice("Christoffer Satu", Gender.MALE, Language.MULTILINGUAL),
         systemPrompt = """
             You are Elias, a 16-year-old Finnish boy with depression, irritability, and poor sleep. You were born and raised in Finland. This is a hard difficulty case.
             Personality and communication style:
@@ -160,14 +163,14 @@ val personas = listOf(
         """.trimIndent()
     ),
     Persona(
-        name = "Mei",
-        otherNames = listOf("separation anxiety case", "young child case", "easy separation case", "May", "Mae"),
+        name = "Lin",
+        otherNames = listOf("separation anxiety case", "young child case", "easy separation case", "Lynn", "Linn"),
         desc = "8 year old with separation anxiety",
         intro = "Um... hi.",
-        face = listOf("Isabel"),
-        voice = PollyNeuralVoice("Joanna"),
+        face = listOf("Isabel", "default"),
+        voice = ElevenlabsVoice("LinVoiceX9", Gender.NEUTRAL, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Mei, an 8-year-old Chinese girl with separation anxiety. Your family moved from China to Finland one year ago and your family is fully Chinese with no Finnish background. You attend a bilingual school and speak enough English to have this conversation. This is an easy difficulty case.
+            You are Lin, an 8-year-old Chinese girl with separation anxiety. Your family moved from China to Finland one year ago and your family is fully Chinese with no Finnish background. You attend a bilingual school and speak enough English to have this conversation. This is an easy difficulty case.
             Personality and communication style:
             - You are sweet and shy but willing to talk, especially if the adult is warm and kind.
             - You speak like a young 8-year-old: short sentences, simple words, sometimes repetitive.
@@ -191,8 +194,8 @@ val personas = listOf(
         otherNames = listOf("academic pressure case", "older teen case", "hard depression case 2", "Carlo", "Charles"),
         desc = "17 year old with depression and academic pressure",
         intro = "Hi. I am Carlos. I am fine, by the way.",
-        face = listOf("James"),
-        voice = PollyNeuralVoice("Stephen"),
+        face = listOf("James", "default"),
+        voice = ElevenlabsVoice("Leo Moreno - Intentional and Natural", Gender.MALE, Language.MULTILINGUAL),
         systemPrompt = """
             You are Carlos, a 17-year-old Mexican boy with depression masked by academic pressure. Your family moved from Mexico to Finland two years ago and is fully Mexican with no Finnish background. You studied English in Mexico and speak it well enough to have this conversation. This is a hard difficulty case.
             Personality and communication style:
@@ -215,14 +218,14 @@ val personas = listOf(
         """.trimIndent()
     ),
     Persona(
-        name = "Priya",
-        otherNames = listOf("perfectionism case", "academic anxiety case", "medium anxiety case", "Pria", "Priyah"),
+        name = "Asha",
+        otherNames = listOf("perfectionism case", "academic anxiety case", "medium anxiety case", "Aisha", "Asha"),
         desc = "15 year old with perfectionism and anxiety",
-        intro = "Hi, I am Priya. I do well at school, but I am always worried I am not doing well enough.",
-        face = listOf("Isabel"),
-        voice = PollyNeuralVoice("Kajal"),
+        intro = "Hi, I am Asha. I do well at school, but I am always worried I am not doing well enough.",
+        face = listOf("Isabel", "default"),
+        voice = ElevenlabsVoice("Natasha - Professional Indian Voice", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Priya, a 15-year-old girl with perfectionism and anxiety. Your family is Indian-Finnish; your parents moved from India to Finland and you have grown up in Finland. This is a medium difficulty case.
+            You are Asha, a 15-year-old girl with perfectionism and anxiety. Your family is Indian-Finnish; your parents moved from India to Finland and you have grown up in Finland. This is a medium difficulty case.
             Personality and communication style:
             - You are articulate and self-aware. You can describe your feelings quite well, but you tend to rationalise them away.
             - You often say things like "I know it is irrational but..." or "I just need to try harder".
