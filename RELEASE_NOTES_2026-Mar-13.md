@@ -8,12 +8,12 @@
 ## Voice and Persona Updates
 - Migrated personas to ElevenLabs voices.
 - Renamed and remapped personas:
-  - Lina -> Aino
+  - Lina -> Aada
   - Noah -> Lauri
   - Mei -> Lin
   - Priya -> Asha
 - Voice selection by persona:
-  - Aino -> Ash - Conversational, Kind and Bright
+  - Aada -> Ash - Conversational, Kind and Bright
   - Lauri -> LauriVoiceV1
   - Sara -> Liza - Pleasant, Smooth and Subdued
   - Elias -> Christoffer Satu
@@ -27,7 +27,7 @@
 - Added runtime logging for selected voice metadata during persona activation.
 
 ## Recognizer and Locale
-- Set skill language to `en-US` in `skill.properties`.
+- Set skill language to `en` in `skill.properties` for broader recognizer compatibility.
 - Removed forced recognizer-language override handlers to avoid unsupported-locale warnings.
 
 ## Build
