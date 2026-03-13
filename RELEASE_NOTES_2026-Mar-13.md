@@ -1,4 +1,4 @@
-# Release Notes - 2026-03-13
+# Release Notes - 2026-Mar-13
 
 ## Conversation Flow Improvements
 - Improved stop-intent handling during chat using flexible keyword matching.
@@ -8,11 +8,12 @@
 ## Voice and Persona Updates
 - Migrated personas to ElevenLabs voices.
 - Renamed and remapped personas:
+  - Lina -> Aino
   - Noah -> Lauri
   - Mei -> Lin
   - Priya -> Asha
 - Voice selection by persona:
-  - Lina -> Ash - Conversational, Kind and Bright
+  - Aino -> Ash - Conversational, Kind and Bright
   - Lauri -> LauriVoiceV1
   - Sara -> Liza - Pleasant, Smooth and Subdued
   - Elias -> Christoffer Satu
