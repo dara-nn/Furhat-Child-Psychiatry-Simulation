@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./gradlew build:*)"
+      "Bash(./gradlew build:*)",
+      "Bash(jar tf:*)",
+      "Bash(grep -v \"$\")",
+      "Bash(grep \"\\\\.class$\")",
+      "Read(//private/tmp/**)",
+      "Bash(jar xf:*)",
+      "Bash(javap -p furhatos/flow/kotlin/SpeechBuilder.class)",
+      "Bash(find /Users/Dara/Documents/build.gradle -name *.jar)"
     ]
   }
 }
