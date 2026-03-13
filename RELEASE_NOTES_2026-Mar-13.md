@@ -1,4 +1,4 @@
-# Release Notes - 2026-03-13
+# Release Notes - 2026-Mar-13
 
 ## Conversation Flow Improvements
 - Improved stop-intent handling during chat using flexible keyword matching.
