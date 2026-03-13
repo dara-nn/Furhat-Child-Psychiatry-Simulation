@@ -54,7 +54,7 @@ val personas = listOf(
 
     Persona(
         name = "Helmi",
-        otherNames = listOf("Helmy", "Helmii", "easy anxiety case", "anxiety case", "social anxiety"),
+        otherNames = listOf("Helmy", "Helmii", "help me", "easy anxiety case", "anxiety case", "social anxiety"),
         desc = "12 year old with social anxiety",
         intro = "Hi, I am Helmi. I get a bit nervous with new people, but I will try.",
         face = listOf("Isabel"),
