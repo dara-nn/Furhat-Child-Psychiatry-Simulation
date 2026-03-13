@@ -7,12 +7,19 @@
 
 ## Voice and Persona Updates
 - Migrated personas to ElevenLabs voices.
-- Updated host voice to `SarahHost - Approachable and Informative`.
 - Renamed and remapped personas:
   - Noah -> Lauri
   - Mei -> Lin
   - Priya -> Asha
-- Updated persona face fallback lists for improved reliability.
+- Voice selection by persona:
+  - Lina -> Ash - Conversational, Kind and Bright
+  - Lauri -> LauriVoiceV1
+  - Sara -> Liza - Pleasant, Smooth and Subdued
+  - Elias -> Christoffer Satu
+  - Lin -> LinVoiceX9
+  - Carlos -> Leo Moreno - Intentional and Natural
+  - Asha -> Natasha - Professional Indian Voice
+- Adjusted persona face and mask setup for more suitable age presentation.
 
 ## ElevenLabs Integration
 - Added ElevenLabs API key response handling in init and parent/idle states.
