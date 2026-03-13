@@ -35,18 +35,34 @@ fun FlowControlRunner.activate(persona: Persona) {
     println("Activating persona '${persona.name}' with voice=${persona.voice.name}")
     furhat.voice = persona.voice
 
-    for (face in persona.face) {
-        if (furhat.faces[persona.mask]?.contains(face)!!) {
-            furhat.character = face
-            break
-        }
+    // Force the requested mask first so character assignment resolves in the correct mask.
+    furhat.mask = persona.mask
+
+    // Keep host deterministic: always return to Jane on the adult mask.
+    if (persona.name == "Host") {
+        furhat.character = "Jane"
+        println("Activated host face 'Jane' on mask='adult'")
+        return
+    }
+
+    val preferredMaskFaces = furhat.faces[persona.mask] ?: emptyList()
+    val selectedFace =
+        persona.face.firstOrNull { it in preferredMaskFaces }
+            ?: preferredMaskFaces.firstOrNull()
+
+    if (selectedFace != null) {
+        furhat.character = selectedFace
+        println("Activated face '${selectedFace}' for persona '${persona.name}' (requested mask=${persona.mask})")
+    } else {
+        println("No available faces in mask '${persona.mask}' for persona '${persona.name}'. Requested=${persona.face}, maskFaces=${preferredMaskFaces}")
     }
 }
 
 val hostPersona = Persona(
     name = "Host",
     desc = "host",
-    face = listOf("Isabel"),
+    face = listOf("Jane"),
+    mask = "adult",
     voice = ElevenlabsVoice("SarahHost - Approachable and Informative", Gender.FEMALE, Language.MULTILINGUAL)
 )
 
@@ -57,7 +73,7 @@ val personas = listOf(
         otherNames = listOf("Helmy", "Helmii", "help me", "easy anxiety case", "anxiety case", "social anxiety"),
         desc = "12 year old with social anxiety",
         intro = "Hi, I am Helmi. I get a bit nervous with new people, but I will try.",
-        face = listOf("Isabel"),
+        face = listOf("Billy"),
         mask = "child",
         voice = ElevenlabsVoice("Ash - Conversational, Kind and Bright", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
@@ -85,7 +101,7 @@ val personas = listOf(
         otherNames = listOf("moderate depression case", "depression case", "low mood", "Lori", "Laury", "Laurent"),
         desc = "14 year old with depression symptoms",
         intro = "Hi.",
-        face = listOf("James"),
+        face = listOf("Devan"),
         mask = "child",
         voice = ElevenlabsVoice("LauriVoiceV1", Gender.NEUTRAL, Language.MULTILINGUAL),
         systemPrompt = """
@@ -113,7 +129,7 @@ val personas = listOf(
         otherNames = listOf("somatic anxiety case", "worry case", "generalized anxiety", "Saara", "Sarah"),
         desc = "10 year old with generalized anxiety and stomach aches",
         intro = "Hi, I am Sara.",
-        face = listOf("Isabel"),
+        face = listOf("Billy"),
         mask = "child",
         voice = ElevenlabsVoice("Liza - Pleasant, Smooth and Subdued", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
@@ -143,7 +159,8 @@ val personas = listOf(
         otherNames = listOf("hard depression case", "complex depression case", "irritable depression", "Elijah", "Eli", "Alias"),
         desc = "16 year old with depression, irritability, and poor sleep",
         intro = "",
-        face = listOf("James"),
+        face = listOf("Devan"),
+        mask = "child",
         voice = ElevenlabsVoice("Christoffer Satu", Gender.MALE, Language.MULTILINGUAL),
         systemPrompt = """
             You are Elias, a 16-year-old Finnish boy with depression, irritability, and poor sleep. You were born and raised in Finland. This is a hard difficulty case.
@@ -171,7 +188,7 @@ val personas = listOf(
         otherNames = listOf("separation anxiety case", "young child case", "easy separation case", "Lynn", "Linn"),
         desc = "8 year old with separation anxiety",
         intro = "Um... hi.",
-        face = listOf("Isabel"),
+        face = listOf("Billy"),
         mask = "child",
         voice = ElevenlabsVoice("LinVoiceX9", Gender.NEUTRAL, Language.MULTILINGUAL),
         systemPrompt = """
@@ -199,7 +216,8 @@ val personas = listOf(
         otherNames = listOf("academic pressure case", "older teen case", "hard depression case 2", "Carlo", "Charles"),
         desc = "17 year old with depression and academic pressure",
         intro = "Hi. I am Carlos. I am fine, by the way.",
-        face = listOf("James"),
+        face = listOf("Devan"),
+        mask = "child",
         voice = ElevenlabsVoice("Leo Moreno - Intentional and Natural", Gender.MALE, Language.MULTILINGUAL),
         systemPrompt = """
             You are Carlos, a 17-year-old Mexican boy with depression masked by academic pressure. Your family moved from Mexico to Finland two years ago and is fully Mexican with no Finnish background. You studied English in Mexico and speak it well enough to have this conversation. This is a hard difficulty case.
@@ -227,7 +245,8 @@ val personas = listOf(
         otherNames = listOf("perfectionism case", "academic anxiety case", "medium anxiety case", "Aisha", "Asha"),
         desc = "15 year old with perfectionism and anxiety",
         intro = "Hi, I am Asha. I do well at school, but I am always worried I am not doing well enough.",
-        face = listOf("Isabel"),
+        face = listOf("Billy"),
+        mask = "child",
         voice = ElevenlabsVoice("Natasha - Professional Indian Voice", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
             You are Asha, a 15-year-old girl with perfectionism and anxiety. Your family is Indian-Finnish; your parents moved from India to Finland and you have grown up in Finland. This is a medium difficulty case.
