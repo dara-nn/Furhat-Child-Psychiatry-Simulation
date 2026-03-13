@@ -4,16 +4,18 @@
 - Improved stop-intent handling during chat using flexible keyword matching.
 - Added robust post-chat routing for yes/no and persona-name fallback handling.
 - Improved greeting and simulation start flow for clearer turn-taking.
+- Updated post-chat fallback to reprompt for a persona name instead of ending the session on incomplete replies.
+- Tightened in-chat stop detection to reduce accidental stops on partial-word matches.
 
 ## Voice and Persona Updates
 - Migrated personas to ElevenLabs voices.
 - Renamed and remapped personas:
-  - Lina -> Aada
+  - Lina -> Helmi
   - Noah -> Lauri
   - Mei -> Lin
   - Priya -> Asha
 - Voice selection by persona:
-  - Aada -> Ash - Conversational, Kind and Bright
+  - Helmi -> Ash - Conversational, Kind and Bright
   - Lauri -> LauriVoiceV1
   - Sara -> Liza - Pleasant, Smooth and Subdued
   - Elias -> Christoffer Satu
@@ -21,6 +23,7 @@
   - Carlos -> Leo Moreno - Intentional and Natural
   - Asha -> Natasha - Professional Indian Voice
 - Adjusted persona face and mask setup for more suitable age presentation.
+- Refined Helmi aliases by removing legacy Lina-era variants and keeping Helmi-specific spoken variants.
 
 ## ElevenLabs Integration
 - Added ElevenLabs API key response handling in init and parent/idle states.

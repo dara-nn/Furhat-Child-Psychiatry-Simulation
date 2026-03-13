@@ -35,8 +35,14 @@ val MainChat = state(Parent) {
 
     onResponse {
         val text = it.text.lowercase()
-        val stopWords = listOf("goodbye", "bye", "stop", "end", "that's enough", "enough", "let's stop", "i want to stop", "can we stop")
-        if (stopWords.any { word -> text.contains(word) }) {
+        val shouldStop =
+            Regex("\\b(goodbye|bye|stop)\\b").containsMatchIn(text) ||
+            text.contains("that's enough") ||
+            text.contains("enough for now") ||
+            text.contains("let's stop") ||
+            text.contains("i want to stop") ||
+            text.contains("can we stop")
+        if (shouldStop) {
             furhat.say("Okay, goodbye")
             furhat.attend(Location(0.0, -1.0, 1.0))
             delay(500)
@@ -106,8 +112,8 @@ val AfterChat: State = state(Parent) {
             }
             text.contains("yes") || text.contains("sure") || text.contains("another") -> goto(ChoosePersona())
             else -> {
-                furhat.say("Okay, goodbye then")
-                goto(Idle)
+                val names = personas.dropLast(1).joinToString(", ") { it.name } + ", or " + personas.last().name
+                furhat.ask("If you want another case, please say one name: $names.")
             }
         }
     }
