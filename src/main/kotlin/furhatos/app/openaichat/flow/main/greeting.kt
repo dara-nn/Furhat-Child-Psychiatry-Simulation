@@ -14,6 +14,15 @@ var askedToStartSimulation = false
 // initial greeting state used when the first user appears
 val InitialInteraction: State = state(Parent) {
 
+    fun FlowControlRunner.reengageGreeting(): String {
+        return listOf(
+            "Hello.",
+            "Hello there.",
+            "Hi there.",
+            "Are you still there?"
+        ).random()
+    }
+
     onEntry {
         askedToStartSimulation = false
         furhat.say("Hello")
@@ -78,7 +87,12 @@ val InitialInteraction: State = state(Parent) {
     }
 
     onNoResponse {
-        reentry()
+        if (askedToStartSimulation) {
+            furhat.ask("${reengageGreeting()} Would you like to start?")
+        } else {
+            furhat.say(reengageGreeting())
+            askToStartSimulation()
+        }
     }
 }
 
@@ -139,6 +153,8 @@ fun ChoosePersona() = state(Parent) {
     }
 
     onNoResponse {
-        reentry()
+        val names = personas.dropLast(1).joinToString(", ") { it.name } + ", or " + personas.last().name
+        val reengage = listOf("Hello there.", "Hi there.", "Are you still there?").random()
+        furhat.ask("$reengage Please say one of the names: $names.")
     }
 }

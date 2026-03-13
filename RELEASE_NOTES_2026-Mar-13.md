@@ -23,7 +23,6 @@
   - Carlos -> Leo Moreno - Intentional and Natural
   - Asha -> Natasha - Professional Indian Voice
 - Adjusted persona face and mask setup for more suitable age presentation.
-- Refined Helmi aliases by removing legacy Lina-era variants and keeping Helmi-specific spoken variants.
 
 ## ElevenLabs Integration
 - Added ElevenLabs API key response handling in init and parent/idle states.
