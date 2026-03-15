@@ -307,7 +307,7 @@ fun parsePersonaJson(json: String): PersonaGenerationResult {
 }
 
 fun generatePersonaFromDescription(userDescription: String): PersonaGenerationResult {
-    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview:generateContent"
+    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
     return try {
         val prompt = buildMetaPrompt(userDescription)
         val requestBody = """

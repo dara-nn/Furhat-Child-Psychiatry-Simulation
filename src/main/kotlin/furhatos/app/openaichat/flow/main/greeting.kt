@@ -15,6 +15,7 @@ import furhatos.records.Location
 
 var currentPersona: Persona = hostPersona
 var askedToStartSimulation = false
+var currentPersonaPage = 0
 
 // ── Shared helper ─────────────────────────────────────────────────────────────
 
@@ -110,8 +111,8 @@ val InitialInteraction: State = state(Parent) {
 
 fun ChoosePersona() = state(Parent) {
 
-    val listKeywords     = listOf("list", "available", "show", "pre", "existing", "case", "pick", "choose", "select")
     val describeKeywords = listOf("describe", "create", "generate", "custom", "make", "my own", "design", "build")
+    val listKeywords     = listOf("list", "available", "show", "pre", "existing", "pick", "choose", "select")
 
     onEntry {
         furhat.attend(users.random)
@@ -130,7 +131,8 @@ fun ChoosePersona() = state(Parent) {
 
     onResponse("list cases", "show cases", "available cases", "pick a case", "choose a case",
                "the list", "existing cases", "show me the cases", "what cases are there") {
-        goto(BrowsePersonas())
+        currentPersonaPage = 0
+        goto(BrowsePersonas)
     }
 
     onResponse("describe", "describe a case", "create a case", "generate a case",
@@ -141,9 +143,12 @@ fun ChoosePersona() = state(Parent) {
     onResponse {
         val text = it.text.lowercase()
         when {
-            listKeywords.any     { kw -> text.contains(kw) } -> goto(BrowsePersonas())
             describeKeywords.any { kw -> text.contains(kw) } -> goto(DescribeCase())
-            else -> reentry()
+            listKeywords.any     { kw -> text.contains(kw) } -> { currentPersonaPage = 0; goto(BrowsePersonas) }
+            else -> furhat.ask(
+                "Say 'list cases' to hear the available cases, " +
+                "or 'describe' to tell me what you'd like to practise."
+            )
         }
     }
 
@@ -152,13 +157,14 @@ fun ChoosePersona() = state(Parent) {
 
 // ── Browse Personas — paginated listing ───────────────────────────────────────
 
-fun BrowsePersonas(page: Int = 0) = state(Parent) {
+val BrowsePersonas: State by lazy { state(Parent) {
 
     val chunkSize = 3
+    val describeKws = listOf("describe", "create", "generate", "custom", "make", "my own", "design", "build")
 
     onEntry {
-        val chunk  = personas.drop(page * chunkSize).take(chunkSize)
-        val isLast = (page + 1) * chunkSize >= personas.size
+        val chunk  = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
+        val isLast = (currentPersonaPage + 1) * chunkSize >= personas.size
 
         val listing = chunk.joinToString(". ") { it.fullDesc }
         val prompt  = if (isLast)
@@ -171,18 +177,23 @@ fun BrowsePersonas(page: Int = 0) = state(Parent) {
     }
 
     onReentry {
-        val chunk = personas.drop(page * chunkSize).take(chunkSize)
-        val names = chunk.dropLast(1).joinToString(", ") { it.name } + ", or " + chunk.last().name
+        val chunk = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
+        val names = if (chunk.size > 1)
+            chunk.dropLast(1).joinToString(", ") { it.name } + ", or " + chunk.last().name
+        else
+            chunk.first().name
         furhat.ask("Which case would you like? $names. Or say 'more'.")
     }
 
     onResponse("more", "next", "continue", "keep going", "show more") {
-        val nextPage = if ((page + 1) * chunkSize >= personas.size) 0 else page + 1
-        goto(BrowsePersonas(nextPage))
+        currentPersonaPage = if ((currentPersonaPage + 1) * chunkSize >= personas.size) 0
+                             else currentPersonaPage + 1
+        goto(BrowsePersonas)
     }
 
     onResponse("start over", "from the beginning", "go back", "restart") {
-        goto(BrowsePersonas(0))
+        currentPersonaPage = 0
+        goto(ChoosePersona())
     }
 
     onResponse("describe", "describe a case", "create a case", "my own", "custom", "make a case") {
@@ -195,14 +206,14 @@ fun BrowsePersonas(page: Int = 0) = state(Parent) {
 
     onResponse {
         val text = it.text.lowercase()
+        if (describeKws.any { kw -> text.contains(kw) }) {
+            goto(DescribeCase())
+        } else {
         val matched = personas.find { p ->
             text.contains(p.name.lowercase()) ||
             p.otherNames.any { alias -> text.contains(alias.lowercase()) }
         }
-        if (matched != null) {
-            startPersona(matched)
-        } else {
-            reentry()
+            if (matched != null) startPersona(matched) else reentry()
         }
     }
 
@@ -210,11 +221,11 @@ fun BrowsePersonas(page: Int = 0) = state(Parent) {
         val reengage = listOf("Hello there.", "Hi there.", "Are you still there?").random()
         furhat.ask("$reengage Which case would you like?")
     }
-}
+} }
 
 // ── Describe Case — custom persona generation ─────────────────────────────────
 
-fun DescribeCase(attempt: Int = 1) = state(Parent) {
+fun DescribeCase(attempt: Int = 1): State = state(Parent) {
 
     val nonAnswerKeywords = listOf(
         "don't know", "dont know", "not sure", "i'm thinking", "im thinking",
