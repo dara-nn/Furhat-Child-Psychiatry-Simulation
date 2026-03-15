@@ -144,11 +144,11 @@ fun ChoosePersona() = state(Parent) {
         val text = it.text
         when {
             // Global keywords
-            text.matchesKeyword(exitKeywords) -> { furhat.say("Okay, goodbye."); goto(Idle) }
-            text.matchesKeyword(helpKeywords) -> {
+            text.matchesKeyword(exitKeywords)    -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(helpKeywords) || text.matchesKeyword(confusedKeywords) -> {
                 furhat.say(
-                    "I can show you a list of pre-made patient cases, or you can describe what " +
-                    "you'd like to practise and I'll create one for you."
+                    "You can say 'show me the cases' to pick from a pre-made list, " +
+                    "or just tell me what you'd like to practise and I'll create one for you."
                 )
                 reentry()
             }
@@ -169,7 +169,10 @@ fun ChoosePersona() = state(Parent) {
                         val description = label.removePrefix("direct_description:").trim()
                         goto(DescribeCase(prefilled = description))
                     }
-                    else -> furhat.ask("Would you like to browse the existing cases, or tell me what you'd like to practise?")
+                    else -> furhat.ask(
+                        "You can say 'show me the cases' to browse the pre-made options, " +
+                        "or tell me what you'd like to practise and I'll create something for you."
+                    )
                 }
             }
         }
