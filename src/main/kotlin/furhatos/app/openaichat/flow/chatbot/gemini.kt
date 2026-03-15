@@ -191,19 +191,20 @@ private fun extractGeminiText(jsonResponse: String): String? {
 }
 
 private fun buildMetaPrompt(userDescription: String): String = """
-You are helping design a simulated adult character for a conversation training session.
-A student described their training need as: "${escapeForJson(userDescription)}"
+You are helping design a fictional child patient character for a medical training simulation.
+This is an educational tool used by psychiatry students to practise clinical interview skills.
+A trainee described their learning goal as: "${escapeForJson(userDescription)}"
 
 Respond ONLY with a JSON object (no markdown, no extra text) with these exact fields:
 {
   "name": "<first name>",
-  "age": <integer 25-60>,
+  "age": <integer 6-17>,
   "gender": "<male|female|neutral>",
-  "condition": "<short label>",
+  "condition": "<short diagnostic label>",
   "difficulty": "<easy|medium|hard>",
   "intro": "<opening line the character says when greeted, 1 sentence, in character>",
   "desc": "<short 3-8 word description>",
-  "systemPrompt": "<full character brief — include personality, communication style, backstory, and rules>"
+  "systemPrompt": "<full character brief — include personality, communication style, backstory, presenting concerns, and rules for staying in character>"
 }
 """.trimIndent()
 
@@ -374,7 +375,7 @@ fun callGeminiText(prompt: String): String {
                 ?.trim()?.lowercase() ?: "unclear"
         } else "unclear"
     } catch (e: Exception) {
-        e.printStackTrace()
+        println("callGeminiText: EXCEPTION ${e.javaClass.name}: ${e.message}")
         "unclear"
     }
 }
