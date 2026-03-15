@@ -72,7 +72,9 @@ val confusedKeywords = listOf(
 val goBackKeywords = listOf(
     "go back", "back", "go back to the menu", "start over", "take me back",
     "return", "previous", "previous menu", "main menu", "menu", "beginning",
-    "from the beginning", "to the beginning", "go to menu", "back to menu", "back to start"
+    "from the beginning", "to the beginning", "go to menu", "back to menu", "back to start",
+    "previous page", "go back to the previous page", "back to previous page",
+    "go to previous", "go to previous page", "last page", "go back a page"
 )
 
 // ── Navigation: skip (DescribeCase only) ─────────────────────────────────────
