@@ -13,7 +13,6 @@ import furhatos.app.openaichat.setting.hostPersona
 import furhatos.app.openaichat.setting.personas
 import furhatos.flow.kotlin.*
 import furhatos.nlu.common.*
-import furhatos.records.Location
 
 var currentPersona: Persona = hostPersona
 var currentPersonaPage = 0
@@ -199,6 +198,13 @@ state(Parent) {
         }.joinToString(" ")
     }
 
+    fun escapeStr(s: String): String = s
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+
     fun buildClassifyPrompt(
         prompt: String,
         speech: String,
@@ -208,8 +214,8 @@ state(Parent) {
         val labels  = chunk.joinToString("\n") { "- select:${it.name.lowercase()}" }
         return """
 You are classifying what a user said to a conversational robot.
-The system just asked: "$prompt"
-The user responded: "$speech"
+The system just asked: "${escapeStr(prompt)}"
+The user responded: "${escapeStr(speech)}"
 
 The currently displayed cases are:
 $context
@@ -397,7 +403,7 @@ fun DescribeCase(
         if (noResponseCount < 2) {
             val phrase = pickSilencePhrase(silencePhrases, lastDescribeCaseSilence)
             lastDescribeCaseSilence = phrase
-            furhat.ask(phrase)
+            furhat.say(phrase)
             goto(DescribeCase(attempt = attempt, noResponseCount = noResponseCount + 1))
         } else {
             furhat.say("No worries. Let me show you the available cases instead.")
