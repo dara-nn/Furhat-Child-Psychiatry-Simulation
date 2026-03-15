@@ -10,27 +10,24 @@ import furhatos.nlu.common.No
 import furhatos.nlu.common.Yes
 import furhatos.records.Location
 
+internal fun FlowControlRunner.concealedSwitch(targetPersona: Persona) {
+    furhat.attend(Location(0.0, -1.8, 1.0))
+    delay(900)
+    activate(targetPersona)
+    delay(850)
+    furhat.attend(Location(0.0, 0.0, 1.0))
+    delay(450)
+}
+
 var afterChatNoResponseCount = 0
 
 val MainChat = state(Parent) {
 
-    onUserLeave { /* suppress Parent's goto(Idle) during chat and goodbye transition */ }
-
-    fun FlowControlRunner.concealedSwitch(targetPersona: Persona) {
-        // Conceal the face before switching mask/character to reduce visible pop.
-        furhat.attend(Location(0.0, -1.8, 1.0))
-        delay(900)
-        activate(targetPersona)
-        delay(850)
-        furhat.attend(Location(0.0, 0.0, 1.0))
-        delay(450)
-    }
+    onUserLeave { /* suppress Parent's goto(Idle) during chat */ }
 
     onEntry {
         concealedSwitch(currentPersona)
-        if (currentPersona.intro.isNotEmpty()) {
-            furhat.say(currentPersona.intro)
-        }
+        if (currentPersona.intro.isNotEmpty()) furhat.say(currentPersona.intro)
         Furhat.dialogHistory.clear()
         reentry()
     }
@@ -40,29 +37,22 @@ val MainChat = state(Parent) {
     }
 
     onResponse {
-        val text = it.text.lowercase()
-        val shouldStop =
-            Regex("\\b(goodbye|bye|stop)\\b").containsMatchIn(text) ||
-            text.contains("that's enough") ||
-            text.contains("enough for now") ||
-            text.contains("let's stop") ||
-            text.contains("i want to stop") ||
-            text.contains("can we stop")
-        if (shouldStop) {
-            furhat.say("Okay, goodbye")
+        val text = it.text
+        // ONLY stop_session keywords active — "stop", "bye", "help" etc. go to the persona
+        if (text.matchesKeyword(stopSessionKeywords)) {
+            furhat.say("Okay, ending the session.")
             concealedSwitch(hostPersona)
-            val hostLine = listOf(
-                "I hope that was useful practice.",
-                "I hope you found that helpful.",
-                "Good session. Let me know if you want to try another case."
-            ).random()
-            furhat.say(hostLine)
+            furhat.say(
+                listOf(
+                    "I hope that was useful practice.",
+                    "I hope you found that helpful.",
+                    "Good session. Let me know if you want to try another case."
+                ).random()
+            )
             goto(AfterChat)
         } else {
             furhat.gesture(GazeAversion(2.0))
-            val response = call {
-                currentPersona.chatbot.getResponse()
-            } as String
+            val response = call { currentPersona.chatbot.getResponse() } as String
             furhat.say(response)
             reentry()
         }
@@ -75,57 +65,57 @@ val MainChat = state(Parent) {
 
 val AfterChat: State = state(Parent) {
 
+    var noResponseCount  = 0
+    var lastSilencePhrase = ""
+
+    val silencePhrases = listOf(
+        "I didn't catch that. Would you like to try another case?",
+        "Still there? Happy to set up another case if you'd like.",
+        "Just let me know — would you like to talk to someone else?"
+    )
+
     onEntry {
-        afterChatNoResponseCount = 0
+        noResponseCount = 0
+        lastSilencePhrase = ""
         furhat.ask("Would you like to talk to someone else?")
     }
 
     onResponse<Yes> { goto(ChoosePersona()) }
-    onResponse("yes", "yeah", "yep", "sure", "ok", "okay", "of course") { goto(ChoosePersona()) }
-
-    onResponse<No> {
-        furhat.say("Okay, goodbye then")
-        goto(Idle)
-    }
-    onResponse("no", "nope", "not now", "that's fine", "goodbye", "bye") {
-        furhat.say("Okay, goodbye then")
-        goto(Idle)
-    }
-
-    for (persona in personas) {
-        onResponse(persona.intent) {
-            furhat.say("Okay, I will let you talk to ${persona.name}")
-            currentPersona = persona
-            goto(MainChat)
-        }
-    }
+    onResponse<No>  { furhat.say("Okay, goodbye then."); goto(Idle) }
 
     onResponse {
-        val text = it.text.lowercase()
-        val matched = personas.find { persona ->
-            text.contains(persona.name.lowercase()) ||
-            persona.otherNames.any { alias -> text.contains(alias.lowercase()) }
-        }
+        val text = it.text
         when {
-            matched != null -> {
-                furhat.say("Okay, I will let you talk to ${matched.name}")
-                currentPersona = matched
-                goto(MainChat)
+            text.matchesKeyword(startYesKeywords)  -> goto(ChoosePersona())
+            text.matchesKeyword(startNoKeywords)   -> { furhat.say("Okay, goodbye then."); goto(Idle) }
+            text.matchesKeyword(exitKeywords)      -> { furhat.say("Okay, goodbye then."); goto(Idle) }
+            text.matchesKeyword(helpKeywords)      -> {
+                furhat.say("Would you like another case, or are you done for today?")
+                reentry()
             }
-            text.contains("yes") || text.contains("sure") || text.contains("another") -> goto(ChoosePersona())
             else -> {
-                val names = personas.dropLast(1).joinToString(", ") { it.name } + ", or " + personas.last().name
-                furhat.ask("If you want another case, please say one name: $names.")
+                // Try persona name match (direct jump)
+                val matched = personas.find { p ->
+                    text.normalizeForKeyword().contains(p.name.lowercase()) ||
+                    p.otherNames.any { alias -> text.normalizeForKeyword().contains(alias.lowercase()) }
+                }
+                if (matched != null) {
+                    startPersona(matched)
+                } else {
+                    furhat.ask("Would you like to try another case, or go straight to a specific one?")
+                }
             }
         }
     }
 
     onNoResponse {
-        afterChatNoResponseCount += 1
-        if (afterChatNoResponseCount < 3) {
-            furhat.ask("I didn't catch that. Would you like to talk to someone else?")
+        noResponseCount++
+        if (noResponseCount < 3) {
+            val phrase = pickSilencePhrase(silencePhrases, lastSilencePhrase)
+            lastSilencePhrase = phrase
+            furhat.ask(phrase)
         } else {
-            furhat.say("Okay, goodbye then")
+            furhat.say("Okay, goodbye then.")
             goto(Idle)
         }
     }
