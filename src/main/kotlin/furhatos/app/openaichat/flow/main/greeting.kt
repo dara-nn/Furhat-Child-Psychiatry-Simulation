@@ -183,73 +183,139 @@ fun ChoosePersona() = state(Parent) {
     }
 }
 
-// ── Browse Personas — paginated listing ───────────────────────────────────────
+// ── Browse Personas ───────────────────────────────────────────────────────────
 
-val BrowsePersonas: State by lazy { state(Parent) {
+val BrowsePersonas: State by lazy {
+state(Parent) {
 
     val chunkSize = 3
+    var lastPrompt       = ""
+    var lastSilencePhrase = ""
+
+    fun buildListing(chunk: List<furhatos.app.openaichat.setting.Persona>): String {
+        val connectors = listOf("First, there's", "Then there's", "And there's")
+        return chunk.mapIndexed { i, p ->
+            "${connectors.getOrElse(i) { "And there's" }} ${p.name} — ${p.desc}."
+        }.joinToString(" ")
+    }
+
+    fun buildClassifyPrompt(
+        prompt: String,
+        speech: String,
+        chunk: List<furhatos.app.openaichat.setting.Persona>
+    ): String {
+        val context = chunk.joinToString("\n") { "- ${it.name}: ${it.desc}" }
+        val labels  = chunk.joinToString("\n") { "- select:${it.name.lowercase()}" }
+        return """
+You are classifying what a user said to a conversational robot.
+The system just asked: "$prompt"
+The user responded: "$speech"
+
+The currently displayed cases are:
+$context
+
+Classify as exactly ONE of:
+$labels
+- unclear
+
+Respond with ONLY the label.
+""".trimIndent()
+    }
+
+    fun findPersona(name: String): List<furhatos.app.openaichat.setting.Persona> {
+        val q = name.lowercase().trim()
+        return personas.filter { p ->
+            p.name.lowercase() == q ||
+            p.name.lowercase().contains(q) ||
+            p.otherNames.any { alias -> alias.lowercase() == q }
+        }
+    }
 
     onEntry {
         val chunk  = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
         val isLast = (currentPersonaPage + 1) * chunkSize >= personas.size
-
-        val listing = chunk.joinToString(". ") { it.fullDesc }
-        val prompt  = if (isLast)
-            "That's all of the available cases. Say a name to choose one."
+        val prompt = if (isLast)
+            "Those are all the cases I have. Any of those sound good? Just say a name."
         else
-            "Say a name to choose one, or say 'more' to hear the next cases."
-
-        furhat.say(listing)
+            "Any of those sound good? Just say a name, or I can keep going."
+        lastPrompt = prompt
+        furhat.say(buildListing(chunk))
         furhat.ask(prompt)
     }
 
     onReentry {
         val chunk  = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
         val isLast = (currentPersonaPage + 1) * chunkSize >= personas.size
-        val names  = if (chunk.size > 1)
-            chunk.dropLast(1).joinToString(", ") { it.name } + ", or " + chunk.last().name
-        else
-            chunk.first().name
-        val prompt = if (isLast) "Which case would you like? $names."
-                     else        "Which case would you like? $names. Or say 'more'."
+        val names  = when (chunk.size) {
+            1    -> chunk.first().name
+            else -> chunk.dropLast(1).joinToString(", ") { it.name } + ", or " + chunk.last().name
+        }
+        val prompt = if (isLast) "Which one would you like? $names."
+                     else        "Which one would you like? $names. Or I can keep going."
+        lastPrompt = prompt
         furhat.ask(prompt)
     }
 
-    onResponse("more", "next", "continue", "keep going", "show more") {
-        currentPersonaPage = if ((currentPersonaPage + 1) * chunkSize >= personas.size) 0
-                             else currentPersonaPage + 1
-        goto(BrowsePersonas)
-    }
-
-    onResponse("start over", "from the beginning", "go back", "restart") {
-        currentPersonaPage = 0
-        goto(ChoosePersona())
-    }
-
-    onResponse("describe", "describe a case", "create a case", "my own", "custom", "make a case") {
-        goto(DescribeCase())
-    }
-
-    for (persona in personas) {
-        onResponse(persona.intent) { startPersona(persona) }
+    onNoResponse {
+        val phrases = listOf(
+            "Are you still there? Which case would you like?",
+            "Take your time — just say a name when you're ready.",
+            "I'm here. Just say a name to pick a case."
+        )
+        val phrase = pickSilencePhrase(phrases, lastSilencePhrase)
+        lastSilencePhrase = phrase
+        furhat.ask(phrase)
     }
 
     onResponse {
-        val text = it.text.lowercase()
-        if (describeKeywords.any { kw -> text.contains(kw) }) {
-            goto(DescribeCase())
-        } else {
-            val matched = personas.find { p ->
-                text.contains(p.name.lowercase()) ||
-                p.otherNames.any { alias -> text.contains(alias.lowercase()) }
+        val text  = it.text
+        val chunk = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
+        when {
+            // State-specific keywords — checked first
+            text.matchesKeyword(nextPageKeywords) -> {
+                val isLast = (currentPersonaPage + 1) * chunkSize >= personas.size
+                if (isLast) {
+                    furhat.say("Those are all the cases I have. Here they are again from the beginning.")
+                    currentPersonaPage = 0
+                } else {
+                    currentPersonaPage++
+                }
+                goto(BrowsePersonas)
             }
-            if (matched != null) startPersona(matched) else reentry()
+            text.matchesKeyword(goBackKeywords)       -> { currentPersonaPage = 0; goto(ChoosePersona()) }
+            text.matchesKeyword(switchToCustomKeywords) -> goto(DescribeCase())
+            // Global keywords
+            text.matchesKeyword(exitKeywords)         -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(helpKeywords)         -> {
+                furhat.say(
+                    "You can pick a patient by saying their name. " +
+                    "If you'd like to hear more cases, just let me know, or you can go back."
+                )
+                reentry()
+            }
+            // LLM tier — classify against personas on current page
+            else -> {
+                furhat.say("Hmm…")
+                val label = call { callGeminiText(buildClassifyPrompt(lastPrompt, text, chunk)) } as String
+                if (label.startsWith("select:")) {
+                    val nameGuess = label.removePrefix("select:").trim()
+                    val matches   = findPersona(nameGuess)
+                    when (matches.size) {
+                        0    -> {
+                            val names = chunk.joinToString(", ") { it.name }
+                            furhat.ask("I didn't catch which case you meant. The options on this page are $names.")
+                        }
+                        1    -> startPersona(matches.first())
+                        else -> furhat.ask(
+                            "Did you mean ${matches[0].name} or ${matches[1].name}?"
+                        )
+                    }
+                } else {
+                    val names = chunk.joinToString(", ") { it.name }
+                    furhat.ask("I didn't catch which case you meant. The options on this page are $names.")
+                }
+            }
         }
-    }
-
-    onNoResponse {
-        val reengage = listOf("Hello there.", "Hi there.", "Are you still there?").random()
-        furhat.ask("$reengage Which case would you like?")
     }
 }
 }
