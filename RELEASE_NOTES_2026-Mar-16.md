@@ -8,6 +8,9 @@ Clinicians can now describe what they want to practise in natural language — f
 ## Case Browser Redesign
 The pre-made case selection flow has been fully redesigned. Cases are now presented in groups of three with a short pause between each, and the robot repeats the names after describing them so clinicians don't have to remember. Users can say "more" to hear the next group, "back" for the previous, or "say it again" to replay the current listing. The browser also handles silence gracefully — after a few no-responses, the robot goes quiet and waits for the user to re-engage.
 
+## LLM-Powered Intent Understanding
+When keyword matching doesn't cover what the user said, the robot now falls back to Gemini to classify intent. This means natural, unprompted phrases are handled gracefully — for example, saying "I want to talk to a teenage boy who doesn't want to be there" at the case selection screen is understood as a custom case description and routed directly to generation, without the user needing to say a specific trigger word. Similarly, vague or indirect responses are classified and handled appropriately rather than falling through to a generic error.
+
 ## Smarter Keyword Recognition
 The robot now recognises keywords embedded within longer phrases, not just exact matches. For example, saying "yeah sure" correctly triggers a yes response, and "can we go back please" correctly triggers back navigation. This makes the conversation feel significantly more natural and forgiving of how people actually speak.
 
