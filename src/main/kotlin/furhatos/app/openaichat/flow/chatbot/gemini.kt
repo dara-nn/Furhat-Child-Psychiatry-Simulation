@@ -191,37 +191,20 @@ private fun extractGeminiText(jsonResponse: String): String? {
 }
 
 private fun buildMetaPrompt(userDescription: String): String = """
-You are helping design a simulated child patient for a psychiatry training session.
+You are helping design a simulated adult character for a conversation training session.
 A student described their training need as: "${escapeForJson(userDescription)}"
 
-Interpret this as a TRAINING NEED, not a literal patient specification. The student may be struggling with a certain type of patient, a demographic, or a clinical challenge. Choose demographics, condition, personality, and difficulty that will give the most educationally useful practice for that need. Fill in any unspecified fields with clinically purposeful choices.
-
-If the training need is too vague to act on (e.g., "I want to talk to children" with no further detail), too irrelevant (e.g., a question unrelated to child psychiatry), or not a training need at all, respond ONLY with this JSON and nothing else:
-{"needsClarification": true, "clarificationQuestion": "<one concise follow-up question to ask the student>"}
-
-Otherwise respond ONLY with a JSON object (no markdown, no extra text) with these exact fields:
+Respond ONLY with a JSON object (no markdown, no extra text) with these exact fields:
 {
   "name": "<first name>",
-  "age": <integer 6–17>,
+  "age": <integer 25-60>,
   "gender": "<male|female|neutral>",
-  "condition": "<short condition label>",
+  "condition": "<short label>",
   "difficulty": "<easy|medium|hard>",
-  "intro": "<opening line the patient says when greeted, 1 sentence, in character>",
-  "desc": "<short 3–8 word description, e.g. '13 year old with social anxiety'>",
-  "systemPrompt": "<full character brief for the LLM, similar style to the examples below — include personality, communication style, symptoms/backstory, and rules>"
+  "intro": "<opening line the character says when greeted, 1 sentence, in character>",
+  "desc": "<short 3-8 word description>",
+  "systemPrompt": "<full character brief — include personality, communication style, backstory, and rules>"
 }
-
-Example systemPrompt style:
-You are [name], a [age]-year-old [background]. This is a [difficulty] difficulty case.
-Personality and communication style:
-- [trait 1]
-- [trait 2]
-Symptoms and backstory:
-- [symptom 1]
-- [symptom 2]
-Rules:
-- Keep responses to a maximum of ten sentences.
-- Never break character or mention that you are an AI.
 """.trimIndent()
 
 private fun extractStringField(json: String, fieldName: String): String {
@@ -318,51 +301,48 @@ fun parsePersonaJson(json: String): PersonaGenerationResult {
         )
         GeneratedPersona(persona)
     } catch (e: Exception) {
-        e.printStackTrace()
+        println("parsePersonaJson: EXCEPTION ${e.javaClass.name}: ${e.message}")
         GenerationFailed
     }
 }
 
 fun generatePersonaFromDescription(userDescription: String): PersonaGenerationResult {
     val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    println("generatePersona: CALLED with description='$userDescription'")
     return try {
         val prompt = buildMetaPrompt(userDescription)
-        val requestBody = """
-        {
-          "contents": [{"parts": [{"text": "${escapeForJson(prompt)}"}]}],
-          "generationConfig": {"temperature": 0.9, "maxOutputTokens": 1024},
-          "safetySettings": [
-            {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH",       "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-          ]
-        }
-        """.trimIndent()
+        val escapedPrompt = escapeForJson(prompt)
+        val requestBody = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}],"generationConfig":{"temperature":0.9,"maxOutputTokens":1024}}"""
+        println("generatePersona: sending request (body length=${requestBody.length})")
 
         val connection = java.net.URL(apiUrl).openConnection() as java.net.HttpURLConnection
         connection.requestMethod = "POST"
         connection.setRequestProperty("x-goog-api-key", geminiServiceKey)
         connection.setRequestProperty("Content-Type", "application/json")
+        connection.connectTimeout = 15000
+        connection.readTimeout = 30000
         connection.doOutput = true
         connection.outputStream.bufferedWriter().use { it.write(requestBody) }
 
         val responseCode = connection.responseCode
+        println("generatePersona: HTTP $responseCode")
         if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
             val raw = connection.inputStream.bufferedReader().readText()
-            println("generatePersona: HTTP 200, raw = $raw")
+            println("generatePersona: raw = $raw")
             val text = extractGeminiText(raw) ?: run {
                 println("generatePersona: extractGeminiText returned null")
                 return GenerationFailed
             }
+            println("generatePersona: extracted text = $text")
             parsePersonaJson(text)
         } else {
             val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "no error body"
-            println("generatePersona: HTTP $responseCode — $errorBody")
+            println("generatePersona: error body = $errorBody")
             GenerationFailed
         }
     } catch (e: Exception) {
-        e.printStackTrace()
+        println("generatePersona: EXCEPTION ${e.javaClass.name}: ${e.message}")
+        println(e.stackTraceToString())
         GenerationFailed
     }
 }
