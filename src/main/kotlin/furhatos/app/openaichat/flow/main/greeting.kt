@@ -201,13 +201,8 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
             lastChoosePersonaSilence = phrase
             furhat.ask(phrase)
         } else {
-            if (users.hasAny()) {
-                furhat.say("I'll wait here — come back whenever you're ready and say 'browse' or 'describe'.")
-                goto(Idle)
-            } else {
-                furhat.say("Okay, goodbye for now. Come back whenever you'd like to practise.")
-                goto(Idle)
-            }
+            furhat.say("I'll go quiet for now. Just say something whenever you're ready to start.")
+            goto(Idle)
         }
     }
 }
