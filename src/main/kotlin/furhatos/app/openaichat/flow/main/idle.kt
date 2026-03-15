@@ -11,6 +11,7 @@ val Idle : State = state {
     onEntry {
         activate(hostPersona)
         furhat.attendNobody()
+        furhat.listen()
     }
 
     onEvent<RequestConfigElevenlabs>(instant = true) {
@@ -24,7 +25,16 @@ val Idle : State = state {
 
     onUserEnter {
         furhat.attend(it)
-        goto(InitialInteraction)  // start with hello and introduction
+        goto(InitialInteraction)
+    }
+
+    onResponse {
+        furhat.attend(users.random)
+        goto(InitialInteraction)
+    }
+
+    onNoResponse {
+        furhat.listen()
     }
 
 }
