@@ -9,8 +9,14 @@ import furhatos.util.Language
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Gemini API Key **/
-val geminiServiceKey = "AIzaSyC5RnAkfM38jf0CYiT_h69ag_zwEWN7i7o"
+/** Gemini API Key — loaded from local.properties at project root **/
+val geminiServiceKey: String by lazy {
+    val props = java.util.Properties()
+    val file = java.io.File("local.properties")
+    if (file.exists()) props.load(file.inputStream())
+    props.getProperty("gemini.api.key")
+        ?: error("gemini.api.key not found in local.properties")
+}
 
 class GeminiAIChatbot(val systemPrompt: String) {
 
@@ -336,4 +342,56 @@ fun generatePersonaFromDescription(userDescription: String): PersonaGenerationRe
         e.printStackTrace()
         GenerationFailed
     }
+}
+
+// ── LLM classification helpers ────────────────────────────────────────────────
+
+/**
+ * Sends [prompt] to Gemini Flash and returns the trimmed lowercase text response,
+ * or "unclear" on any error or empty response.
+ * Temperature 0 for deterministic classification.
+ */
+fun callGeminiText(prompt: String): String {
+    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    return try {
+        val requestBody = """
+        {
+          "contents": [{"parts": [{"text": "${escapeForJson(prompt)}"}]}],
+          "generationConfig": {"temperature": 0.0, "maxOutputTokens": 64}
+        }
+        """.trimIndent()
+        val connection = java.net.URL(apiUrl).openConnection() as java.net.HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.setRequestProperty("x-goog-api-key", geminiServiceKey)
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.doOutput = true
+        connection.outputStream.bufferedWriter().use { it.write(requestBody) }
+        if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
+            extractGeminiText(connection.inputStream.bufferedReader().readText())
+                ?.trim()?.lowercase() ?: "unclear"
+        } else "unclear"
+    } catch (e: Exception) {
+        e.printStackTrace()
+        "unclear"
+    }
+}
+
+/**
+ * Classifies [userSpeech] given [lastPrompt] Furhat just said.
+ * [labelsBlock] is a newline-separated list of label lines (each starting with "- ").
+ * Returns one of the labels or "unclear".
+ */
+fun classifyIntent(lastPrompt: String, userSpeech: String, labelsBlock: String): String {
+    val prompt = """
+You are classifying what a user said to a conversational robot.
+The system just asked: "${escapeForJson(lastPrompt)}"
+The user responded: "${escapeForJson(userSpeech)}"
+
+Classify as exactly ONE of:
+$labelsBlock
+- unclear
+
+Respond with ONLY the label.
+""".trimIndent()
+    return callGeminiText(prompt)
 }
