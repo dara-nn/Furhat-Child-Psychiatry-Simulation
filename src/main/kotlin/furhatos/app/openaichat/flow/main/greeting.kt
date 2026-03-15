@@ -5,6 +5,8 @@ import furhatos.app.openaichat.flow.chatbot.GenerationFailed
 import furhatos.app.openaichat.flow.chatbot.MainChat
 import furhatos.app.openaichat.flow.chatbot.NeedsClarification
 import furhatos.app.openaichat.flow.chatbot.PersonaGenerationResult
+import furhatos.app.openaichat.flow.chatbot.callGeminiText
+import furhatos.app.openaichat.flow.chatbot.classifyIntent
 import furhatos.app.openaichat.flow.chatbot.generatePersonaFromDescription
 import furhatos.app.openaichat.setting.Persona
 import furhatos.app.openaichat.setting.hostPersona
@@ -14,96 +16,106 @@ import furhatos.nlu.common.*
 import furhatos.records.Location
 
 var currentPersona: Persona = hostPersona
-var askedToStartSimulation = false
 var currentPersonaPage = 0
 
-// ── Shared helper ─────────────────────────────────────────────────────────────
+// Silence reprompt tracking — one var per state that creates new instances each call
+var lastInitialInteractionSilence = ""
+var lastChoosePersonaSilence      = ""
+var lastDescribeCaseSilence       = ""
 
-private fun FlowControlRunner.startPersona(persona: Persona) {
-    val intro = listOf(
-        "Okay, I will let you talk to ${persona.name}.",
-        "Okay, let's have a chat with ${persona.name}.",
-        "Sure, we can talk to ${persona.name}."
-    ).random()
-    val outro = listOf(
-        "When you want to end the conversation, just say goodbye, stop, or that's enough.",
-        "To end the conversation, just say goodbye or stop."
-    ).random()
-    furhat.say("$intro $outro")
+// ── Shared helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Pre-transition announcement (system voice, before face switch).
+ * Then navigates to MainChat where the face switch happens.
+ */
+internal fun FlowControlRunner.startPersona(persona: Persona) {
+    furhat.say("Alright, you're about to meet ${persona.name}. Say 'stop session' at any time to end.")
     currentPersona = persona
     goto(MainChat)
+}
+
+/** Shared result handler for both DescribeCase paths (normal + prefilled). */
+private fun FlowControlRunner.handleGenerationResult(result: PersonaGenerationResult, attempt: Int) {
+    when (result) {
+        is GeneratedPersona    -> startPersona(result.persona)
+        is NeedsClarification  -> {
+            if (attempt < 2) {
+                furhat.say(result.question)
+                goto(DescribeCase(attempt = 2))
+            } else {
+                furhat.say("I'm not sure I understood well enough. Let me show you the available cases instead.")
+                goto(ChoosePersona())
+            }
+        }
+        is GenerationFailed -> {
+            furhat.say("Something went wrong there. Let me show you the available cases.")
+            goto(ChoosePersona())
+        }
+    }
 }
 
 // ── Initial greeting ──────────────────────────────────────────────────────────
 
 val InitialInteraction: State = state(Parent) {
 
-    fun FlowControlRunner.reengageGreeting(): String {
-        return listOf(
-            "Hello.",
-            "Hello there.",
-            "Hi there.",
-            "Are you still there?"
-        ).random()
-    }
+    val silencePhrases = listOf(
+        "Are you still there? Would you like to give it a try?",
+        "Hello? I'm here whenever you're ready.",
+        "Just let me know if you'd like to get started."
+    )
 
     onEntry {
-        askedToStartSimulation = false
-        furhat.say("Hello")
-        reentry()
+        furhat.say("Hi there!")
+        delay(900)
+        furhat.ask(
+            "I'm here to help you practise clinical interviews. " +
+            "I can play different child patients for you to talk to. " +
+            "Want to give it a try?"
+        )
     }
 
     onReentry {
-        furhat.listen()
+        furhat.ask("Would you like to try a practice interview?")
     }
 
-    fun FlowControlRunner.askToStartSimulation() {
-        askedToStartSimulation = true
-        furhat.say(
-            "I'm a child-psychiatry training assistant. " +
-                "I can role-play as different child patients so you can practise clinical interviews. " +
-                "Would you like to start?"
-        )
-        reentry()
-    }
-
-    onResponse<Yes> {
-        if (askedToStartSimulation) goto(ChoosePersona()) else askToStartSimulation()
-    }
-
-    onResponse("yes", "yeah", "yep", "sure", "ok", "okay") {
-        if (askedToStartSimulation) goto(ChoosePersona()) else askToStartSimulation()
-    }
-
-    onResponse<No> {
-        if (askedToStartSimulation) {
-            furhat.say("Okay, let me know if you change your mind.")
-            goto(Idle)
-        } else {
-            askToStartSimulation()
-        }
-    }
-
-    onResponse("no", "nope", "not now") {
-        if (askedToStartSimulation) {
-            furhat.say("Okay, let me know if you change your mind.")
-            goto(Idle)
-        } else {
-            askToStartSimulation()
-        }
-    }
+    onResponse<Yes> { goto(ChoosePersona()) }
+    onResponse<No>  { furhat.say("Okay, no worries. I'll be here if you change your mind."); goto(Idle) }
 
     onResponse {
-        if (askedToStartSimulation) goto(ChoosePersona()) else askToStartSimulation()
+        val text = it.text
+        when {
+            // State-specific keywords checked first
+            text.matchesKeyword(startYesKeywords)  -> goto(ChoosePersona())
+            text.matchesKeyword(startNoKeywords)   -> {
+                furhat.say("Okay, no worries. I'll be here if you change your mind.")
+                goto(Idle)
+            }
+            text.matchesKeyword(confusedKeywords)  -> {
+                furhat.say(
+                    "I'm a practice tool — I play child patients so you can rehearse interviews. " +
+                    "Want to try?"
+                )
+                reentry()
+            }
+            // Global keywords
+            text.matchesKeyword(exitKeywords)      -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(helpKeywords)      -> {
+                furhat.say(
+                    "I'm a training robot. I can pretend to be a child patient so you can " +
+                    "practise your clinical interview skills. Let me know if you'd like to get started."
+                )
+                reentry()
+            }
+            // All failed — do NOT treat as affirmative
+            else -> furhat.ask("Sorry, I didn't quite get that. Would you like to try a practice interview?")
+        }
     }
 
     onNoResponse {
-        if (askedToStartSimulation) {
-            furhat.ask("${reengageGreeting()} Would you like to start?")
-        } else {
-            furhat.say(reengageGreeting())
-            askToStartSimulation()
-        }
+        val phrase = pickSilencePhrase(silencePhrases, lastInitialInteractionSilence)
+        lastInitialInteractionSilence = phrase
+        furhat.ask(phrase)
     }
 }
 
@@ -111,10 +123,8 @@ val InitialInteraction: State = state(Parent) {
 
 fun ChoosePersona() = state(Parent) {
 
-    val describeKeywords = listOf("describe", "create", "generate", "custom", "make", "my own", "design", "build")
-    val listKeywords     = listOf("list", "available", "show", "pre", "existing", "pick", "choose", "select")
-
     onEntry {
+        currentPersonaPage = 0
         furhat.attend(users.random)
         furhat.ask(
             "Would you like to choose from the available cases, " +
@@ -160,7 +170,6 @@ fun ChoosePersona() = state(Parent) {
 val BrowsePersonas: State by lazy { state(Parent) {
 
     val chunkSize = 3
-    val describeKws = listOf("describe", "create", "generate", "custom", "make", "my own", "design", "build")
 
     onEntry {
         val chunk  = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
@@ -177,12 +186,15 @@ val BrowsePersonas: State by lazy { state(Parent) {
     }
 
     onReentry {
-        val chunk = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
-        val names = if (chunk.size > 1)
+        val chunk  = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
+        val isLast = (currentPersonaPage + 1) * chunkSize >= personas.size
+        val names  = if (chunk.size > 1)
             chunk.dropLast(1).joinToString(", ") { it.name } + ", or " + chunk.last().name
         else
             chunk.first().name
-        furhat.ask("Which case would you like? $names. Or say 'more'.")
+        val prompt = if (isLast) "Which case would you like? $names."
+                     else        "Which case would you like? $names. Or say 'more'."
+        furhat.ask(prompt)
     }
 
     onResponse("more", "next", "continue", "keep going", "show more") {
@@ -206,13 +218,13 @@ val BrowsePersonas: State by lazy { state(Parent) {
 
     onResponse {
         val text = it.text.lowercase()
-        if (describeKws.any { kw -> text.contains(kw) }) {
+        if (describeKeywords.any { kw -> text.contains(kw) }) {
             goto(DescribeCase())
         } else {
-        val matched = personas.find { p ->
-            text.contains(p.name.lowercase()) ||
-            p.otherNames.any { alias -> text.contains(alias.lowercase()) }
-        }
+            val matched = personas.find { p ->
+                text.contains(p.name.lowercase()) ||
+                p.otherNames.any { alias -> text.contains(alias.lowercase()) }
+            }
             if (matched != null) startPersona(matched) else reentry()
         }
     }
@@ -221,16 +233,17 @@ val BrowsePersonas: State by lazy { state(Parent) {
         val reengage = listOf("Hello there.", "Hi there.", "Are you still there?").random()
         furhat.ask("$reengage Which case would you like?")
     }
-} }
+}
+}
 
 // ── Describe Case — custom persona generation ─────────────────────────────────
 
-fun DescribeCase(attempt: Int = 1): State = state(Parent) {
+fun DescribeCase(attempt: Int = 1, noResponseCount: Int = 0): State = state(Parent) {
 
     val nonAnswerKeywords = listOf(
         "don't know", "dont know", "not sure", "i'm thinking", "im thinking",
         "hmm", "um", "uh", "let me think", "good question", "i have no idea",
-        "no idea", "skip", "never mind", "nevermind", "pass"
+        "no idea", "pass"
     )
 
     onEntry {
@@ -246,9 +259,21 @@ fun DescribeCase(attempt: Int = 1): State = state(Parent) {
         }
     }
 
+    onResponse("go back", "back", "list cases", "show me the list", "existing cases",
+               "choose a case", "available cases", "show cases", "pick a case") {
+        furhat.say("No problem. Let me show you the available cases.")
+        goto(ChoosePersona())
+    }
+
     onResponse {
         val text = it.text.lowercase()
         val originalText = it.text
+
+        if (listKeywords.any { kw -> text.contains(kw) }) {
+            furhat.say("No problem. Let me show you the available cases.")
+            goto(ChoosePersona())
+            return@onResponse
+        }
 
         if (nonAnswerKeywords.any { kw -> text.contains(kw) }) {
             furhat.ask(
@@ -256,6 +281,12 @@ fun DescribeCase(attempt: Int = 1): State = state(Parent) {
                 "'resistant teenager', 'separation anxiety in a young child', " +
                 "or 'I struggle with patients who minimise their symptoms'."
             )
+            return@onResponse
+        }
+
+        if (text.contains("never mind") || text.contains("nevermind") || text.contains("skip")) {
+            furhat.say("No problem. Let me show you the available cases.")
+            goto(ChoosePersona())
             return@onResponse
         }
 
@@ -291,6 +322,12 @@ fun DescribeCase(attempt: Int = 1): State = state(Parent) {
     }
 
     onNoResponse {
-        furhat.ask("I didn't hear anything. What would you like to practise?")
+        if (noResponseCount < 2) {
+            furhat.ask("I didn't hear anything. What would you like to practise?")
+            goto(DescribeCase(attempt = attempt, noResponseCount = noResponseCount + 1))
+        } else {
+            furhat.say("No problem. Let me show you the available cases.")
+            goto(ChoosePersona())
+        }
     }
 }
