@@ -119,50 +119,68 @@ val InitialInteraction: State = state(Parent) {
     }
 }
 
-// ── Choose Persona — initial two-way branch ───────────────────────────────────
+// ── Choose Persona ────────────────────────────────────────────────────────────
 
 fun ChoosePersona() = state(Parent) {
+
+    val mainPrompt = "I have some ready-made cases, or I can create a custom one based on what you want to practise. Which would you prefer?"
+
+    val silencePhrases = listOf(
+        "Would you like to browse the existing cases, or tell me what you'd like to practise?",
+        "Still there? You can pick from the list or describe what you need.",
+        "Take your time — let me know if you want to see the cases or describe something."
+    )
 
     onEntry {
         currentPersonaPage = 0
         furhat.attend(users.random)
-        furhat.ask(
-            "Would you like to choose from the available cases, " +
-            "or describe what you'd like to practise and I'll create a custom one for you?"
-        )
+        furhat.ask(mainPrompt)
     }
 
     onReentry {
-        furhat.ask(
-            "Say 'list cases' to hear the available cases, " +
-            "or 'describe' to tell me what you'd like to practise."
-        )
-    }
-
-    onResponse("list cases", "show cases", "available cases", "pick a case", "choose a case",
-               "the list", "existing cases", "show me the cases", "what cases are there") {
-        currentPersonaPage = 0
-        goto(BrowsePersonas)
-    }
-
-    onResponse("describe", "describe a case", "create a case", "generate a case",
-               "custom case", "my own", "my own case", "make a case") {
-        goto(DescribeCase())
+        furhat.ask("Would you like to browse the existing cases, or tell me what you'd like to practise?")
     }
 
     onResponse {
-        val text = it.text.lowercase()
+        val text = it.text
         when {
-            describeKeywords.any { kw -> text.contains(kw) } -> goto(DescribeCase())
-            listKeywords.any     { kw -> text.contains(kw) } -> { currentPersonaPage = 0; goto(BrowsePersonas) }
-            else -> furhat.ask(
-                "Say 'list cases' to hear the available cases, " +
-                "or 'describe' to tell me what you'd like to practise."
-            )
+            // Global keywords
+            text.matchesKeyword(exitKeywords) -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(helpKeywords) -> {
+                furhat.say(
+                    "I can show you a list of pre-made patient cases, or you can describe what " +
+                    "you'd like to practise and I'll create one for you."
+                )
+                reentry()
+            }
+            // LLM tier — thinking cue before API call
+            else -> {
+                furhat.say("Hmm…")
+                val label = call {
+                    classifyIntent(
+                        mainPrompt,
+                        text,
+                        "- browse\n- custom\n- direct_description:[the training need description]"
+                    )
+                } as String
+                when {
+                    label == "browse"                        -> goto(BrowsePersonas)
+                    label == "custom"                        -> goto(DescribeCase())
+                    label.startsWith("direct_description:") -> {
+                        val description = label.removePrefix("direct_description:").trim()
+                        goto(DescribeCase(prefilled = description))
+                    }
+                    else -> furhat.ask("Would you like to browse the existing cases, or tell me what you'd like to practise?")
+                }
+            }
         }
     }
 
-    onNoResponse { reentry() }
+    onNoResponse {
+        val phrase = pickSilencePhrase(silencePhrases, lastChoosePersonaSilence)
+        lastChoosePersonaSilence = phrase
+        furhat.ask(phrase)
+    }
 }
 
 // ── Browse Personas — paginated listing ───────────────────────────────────────
