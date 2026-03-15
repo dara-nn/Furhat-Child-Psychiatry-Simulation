@@ -19,8 +19,6 @@ internal fun FlowControlRunner.concealedSwitch(targetPersona: Persona) {
     delay(450)
 }
 
-var afterChatNoResponseCount = 0
-
 val MainChat = state(Parent) {
 
     onUserLeave { /* suppress Parent's goto(Idle) during chat */ }
