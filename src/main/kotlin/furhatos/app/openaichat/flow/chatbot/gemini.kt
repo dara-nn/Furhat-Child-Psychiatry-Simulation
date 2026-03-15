@@ -220,7 +220,7 @@ Symptoms and backstory:
 - [symptom 1]
 - [symptom 2]
 Rules:
-- Keep responses to a maximum of five sentences.
+- Keep responses to a maximum of ten sentences.
 - Never break character or mention that you are an AI.
 """.trimIndent()
 
@@ -324,7 +324,13 @@ fun generatePersonaFromDescription(userDescription: String): PersonaGenerationRe
         val requestBody = """
         {
           "contents": [{"parts": [{"text": "${escapeForJson(prompt)}"}]}],
-          "generationConfig": {"temperature": 0.9, "maxOutputTokens": 1024}
+          "generationConfig": {"temperature": 0.9, "maxOutputTokens": 1024},
+          "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH",       "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+          ]
         }
         """.trimIndent()
 
