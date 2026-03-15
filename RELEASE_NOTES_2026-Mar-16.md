@@ -8,6 +8,9 @@ Clinicians can now describe what they want to practise in natural language — f
 ## Case Browser Redesign
 The pre-made case selection flow has been fully redesigned. Cases are now presented in groups of three with a short pause between each, and the robot repeats the names after describing them so clinicians don't have to remember. Users can say "more" to hear the next group, "back" for the previous, or "say it again" to replay the current listing. The browser also handles silence gracefully — after a few no-responses, the robot goes quiet and waits for the user to re-engage.
 
+## Smarter Keyword Recognition
+The robot now recognises keywords embedded within longer phrases, not just exact matches. For example, saying "yeah sure" correctly triggers a yes response, and "can we go back please" correctly triggers back navigation. This makes the conversation feel significantly more natural and forgiving of how people actually speak.
+
 ## Idle Wake-Up
 The robot now listens for speech while idle, not just for someone walking in front of the camera. Saying anything while the robot is quiet will bring it back to the greeting flow.
 
