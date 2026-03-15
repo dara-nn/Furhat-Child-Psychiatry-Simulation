@@ -18,8 +18,12 @@ val Init: State = state() {
 
     init {
         /** Check API key for the Gemini language model has been set */
-        if (geminiServiceKey.isEmpty()) {
-            println("Missing API key for Gemini language model. ")
+        val keyOk = try { geminiServiceKey.isNotEmpty() } catch (e: Exception) {
+            println("Init: geminiServiceKey error — ${e.message}")
+            false
+        }
+        if (!keyOk) {
+            println("Missing or invalid API key for Gemini. Check local.properties has gemini.api.key set.")
             exit()
         }
 
