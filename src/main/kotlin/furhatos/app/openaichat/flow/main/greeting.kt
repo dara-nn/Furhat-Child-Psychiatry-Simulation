@@ -65,13 +65,14 @@ val InitialInteraction: State = state(Parent) {
     )
 
     onEntry {
-        furhat.say("Hi there!")
-        delay(900)
-        furhat.ask(
-            "I'm here to help you practise clinical interviews. " +
-            "I can play different child patients for you to talk to. " +
-            "Want to give it a try?"
+        furhat.say("Hi there! I'm a training assistant for child psychiatry.")
+        delay(600)
+        furhat.say(
+            "I can play the role of a child patient during a simulated clinical interview, " +
+            "so you can practise your interview skills."
         )
+        delay(600)
+        furhat.ask("Would you like to give it a try?")
     }
 
     onReentry {
@@ -122,37 +123,45 @@ val InitialInteraction: State = state(Parent) {
 
 fun ChoosePersona() = state(Parent) {
 
-    val mainPrompt = "I have some ready-made cases, or I can create a custom one based on what you want to practise. Which would you prefer?"
+    val mainPrompt = "Would you like to browse the ready-made cases, or describe what you want to practise? Say 'browse' or 'describe'."
 
     val silencePhrases = listOf(
-        "Would you like to browse the existing cases, or tell me what you'd like to practise?",
-        "Still there? You can pick from the list or describe what you need.",
-        "Take your time — let me know if you want to see the cases or describe something."
+        "Still there? Say 'browse' or 'describe'.",
+        "Take your time — say 'browse' to see the cases, or 'describe' to create your own.",
+        "I'm here. Just say 'browse' or 'describe'."
     )
 
     onEntry {
         currentPersonaPage = 0
         furhat.attend(users.random)
-        furhat.ask(mainPrompt)
+        furhat.say(
+            "I have a set of pre-made patient cases — " +
+            "each one is a different child with a different background and presenting concern."
+        )
+        delay(600)
+        furhat.ask(
+            "You can browse those, or if you'd like to practise something specific, " +
+            "I can create a custom case for you. Say 'browse' or 'describe'."
+        )
     }
 
     onReentry {
-        furhat.ask("Would you like to browse the existing cases, or tell me what you'd like to practise?")
+        furhat.ask("Say 'browse' to see the pre-made options, or 'describe' to tell me what you want to practise.")
     }
 
     onResponse {
         val text = it.text
         when {
+            // State-specific keyword tiers (fast, no LLM)
+            text.matchesKeyword(listCasesKeywords)      -> goto(BrowsePersonas)
+            text.matchesKeyword(switchToCustomKeywords) -> goto(DescribeCase())
             // Global keywords
-            text.matchesKeyword(exitKeywords)    -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(exitKeywords)           -> { furhat.say("Okay, goodbye."); goto(Idle) }
             text.matchesKeyword(helpKeywords) || text.matchesKeyword(confusedKeywords) -> {
-                furhat.say(
-                    "You can say 'show me the cases' to pick from a pre-made list, " +
-                    "or just tell me what you'd like to practise and I'll create one for you."
-                )
+                furhat.say("Say 'browse' to see the pre-made options, or 'describe' to create your own.")
                 reentry()
             }
-            // LLM tier — thinking cue before API call
+            // LLM — only for natural descriptions that should skip straight to generation
             else -> {
                 furhat.say("Hmm…")
                 val label = call {
@@ -169,10 +178,7 @@ fun ChoosePersona() = state(Parent) {
                         val description = label.removePrefix("direct_description:").trim()
                         goto(DescribeCase(prefilled = description))
                     }
-                    else -> furhat.ask(
-                        "You can say 'show me the cases' to browse the pre-made options, " +
-                        "or tell me what you'd like to practise and I'll create something for you."
-                    )
+                    else -> furhat.ask("Say 'browse' to see the pre-made options, or 'describe' to create your own.")
                 }
             }
         }
