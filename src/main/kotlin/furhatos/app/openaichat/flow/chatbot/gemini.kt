@@ -264,12 +264,15 @@ private fun extractIntField(json: String, fieldName: String): Int {
 }
 
 fun parsePersonaJson(json: String): PersonaGenerationResult {
-    // Strip markdown fences if present
-    val cleaned = json
-        .trimIndent()
-        .removePrefix("```json").removePrefix("```")
-        .removeSuffix("```")
-        .trim()
+    // Extract JSON object by first { and last } — robust against preamble/postamble text
+    val startIdx = json.indexOf('{')
+    val endIdx   = json.lastIndexOf('}')
+    val cleaned  = if (startIdx != -1 && endIdx > startIdx)
+        json.substring(startIdx, endIdx + 1).trim()
+    else
+        json.trim()
+
+    println("parsePersonaJson: cleaned = $cleaned")
 
     // Check for clarification response
     if (cleaned.contains("\"needsClarification\"") && cleaned.contains("true")) {
@@ -278,7 +281,10 @@ fun parsePersonaJson(json: String): PersonaGenerationResult {
     }
 
     return try {
-        val name       = extractStringField(cleaned, "name").ifBlank { return GenerationFailed }
+        val name = extractStringField(cleaned, "name").ifBlank {
+            println("parsePersonaJson: name field blank — cleaned = $cleaned")
+            return GenerationFailed
+        }
         val age        = extractIntField(cleaned, "age").takeIf { it in 6..17 } ?: 12
         val genderStr  = extractStringField(cleaned, "gender").lowercase()
         val intro      = extractStringField(cleaned, "intro")
@@ -344,9 +350,15 @@ fun generatePersonaFromDescription(userDescription: String): PersonaGenerationRe
         val responseCode = connection.responseCode
         if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
             val raw = connection.inputStream.bufferedReader().readText()
-            val text = extractGeminiText(raw) ?: return GenerationFailed
+            println("generatePersona: HTTP 200, raw = $raw")
+            val text = extractGeminiText(raw) ?: run {
+                println("generatePersona: extractGeminiText returned null")
+                return GenerationFailed
+            }
             parsePersonaJson(text)
         } else {
+            val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "no error body"
+            println("generatePersona: HTTP $responseCode — $errorBody")
             GenerationFailed
         }
     } catch (e: Exception) {
