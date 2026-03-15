@@ -9,19 +9,7 @@ import furhatos.util.Language
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Gemini API Key — loaded from local.properties (classpath when bundled, filesystem fallback) **/
-val geminiServiceKey: String by lazy {
-    val props = java.util.Properties()
-    val stream = GeminiAIChatbot::class.java.getResourceAsStream("/local.properties")
-    if (stream != null) {
-        props.load(stream)
-    } else {
-        val file = java.io.File("local.properties")
-        if (file.exists()) props.load(file.inputStream())
-    }
-    props.getProperty("gemini.api.key")
-        ?: error("gemini.api.key not found in local.properties")
-}
+val geminiServiceKey: String = "AIzaSyC5RnAkfM38jf0CYiT_h69ag_zwEWN7i7o"
 
 class GeminiAIChatbot(val systemPrompt: String) {
 
