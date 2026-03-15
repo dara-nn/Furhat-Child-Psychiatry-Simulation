@@ -16,7 +16,25 @@ import furhatos.records.Location
 var currentPersona: Persona = hostPersona
 var askedToStartSimulation = false
 
-// initial greeting state used when the first user appears
+// ── Shared helper ─────────────────────────────────────────────────────────────
+
+private fun FlowControlRunner.startPersona(persona: Persona) {
+    val intro = listOf(
+        "Okay, I will let you talk to ${persona.name}.",
+        "Okay, let's have a chat with ${persona.name}.",
+        "Sure, we can talk to ${persona.name}."
+    ).random()
+    val outro = listOf(
+        "When you want to end the conversation, just say goodbye, stop, or that's enough.",
+        "To end the conversation, just say goodbye or stop."
+    ).random()
+    furhat.say("$intro $outro")
+    currentPersona = persona
+    goto(MainChat)
+}
+
+// ── Initial greeting ──────────────────────────────────────────────────────────
+
 val InitialInteraction: State = state(Parent) {
 
     fun FlowControlRunner.reengageGreeting(): String {
@@ -41,7 +59,7 @@ val InitialInteraction: State = state(Parent) {
     fun FlowControlRunner.askToStartSimulation() {
         askedToStartSimulation = true
         furhat.say(
-            "I’m a child-psychiatry training assistant. " +
+            "I'm a child-psychiatry training assistant. " +
                 "I can role-play as different child patients so you can practise clinical interviews. " +
                 "Would you like to start?"
         )
@@ -49,19 +67,11 @@ val InitialInteraction: State = state(Parent) {
     }
 
     onResponse<Yes> {
-        if (askedToStartSimulation) {
-            goto(ChoosePersona())
-        } else {
-            askToStartSimulation()
-        }
+        if (askedToStartSimulation) goto(ChoosePersona()) else askToStartSimulation()
     }
 
     onResponse("yes", "yeah", "yep", "sure", "ok", "okay") {
-        if (askedToStartSimulation) {
-            goto(ChoosePersona())
-        } else {
-            askToStartSimulation()
-        }
+        if (askedToStartSimulation) goto(ChoosePersona()) else askToStartSimulation()
     }
 
     onResponse<No> {
@@ -82,13 +92,8 @@ val InitialInteraction: State = state(Parent) {
         }
     }
 
-    // any response to the greeting triggers the self-introduction and question
     onResponse {
-        if (askedToStartSimulation) {
-            goto(ChoosePersona())
-        } else {
-            askToStartSimulation()
-        }
+        if (askedToStartSimulation) goto(ChoosePersona()) else askToStartSimulation()
     }
 
     onNoResponse {
@@ -101,53 +106,87 @@ val InitialInteraction: State = state(Parent) {
     }
 }
 
+// ── Choose Persona — initial two-way branch ───────────────────────────────────
+
 fun ChoosePersona() = state(Parent) {
 
-    fun FlowControlRunner.presentPersonas() {
-        val listing = personas.joinToString(". ") { it.fullDesc }
-        furhat.say(
-            "Here are the available cases. $listing. " +
-            "You can also describe what you want to practise and I will generate a custom case for you."
-        )
-        reentry()
-    }
+    val listKeywords     = listOf("list", "available", "show", "pre", "existing", "case", "pick", "choose", "select")
+    val describeKeywords = listOf("describe", "create", "generate", "custom", "make", "my own", "design", "build")
 
     onEntry {
         furhat.attend(users.random)
-        presentPersonas()
+        furhat.ask(
+            "Would you like to choose from the available cases, " +
+            "or describe what you'd like to practise and I'll create a custom one for you?"
+        )
     }
 
     onReentry {
-        val names = personas.dropLast(1).joinToString(", ") { it.name } + ", or " + personas.last().name
-        furhat.ask("Who would you like to talk to? Say the name: $names. Or say 'describe a case' to create your own.")
+        furhat.ask(
+            "Say 'list cases' to hear the available cases, " +
+            "or 'describe' to tell me what you'd like to practise."
+        )
     }
 
-    onResponse("can you present them again", "could you repeat") {
-        presentPersonas()
+    onResponse("list cases", "show cases", "available cases", "pick a case", "choose a case",
+               "the list", "existing cases", "show me the cases", "what cases are there") {
+        goto(BrowsePersonas())
     }
 
-    val describeKeywords = listOf(
-        "describe", "create", "generate", "custom", "make a case", "my own",
-        "design", "build a case", "i want something", "can you make"
-    )
-
-    onResponse("describe a case", "create a case", "generate a case", "custom case", "make a case", "my own case") {
+    onResponse("describe", "describe a case", "create a case", "generate a case",
+               "custom case", "my own", "my own case", "make a case") {
         goto(DescribeCase())
     }
 
-    fun FlowControlRunner.startPersona(persona: Persona) {
-        val intro = listOf(
-            "Okay, I will let you talk to ${persona.name}.",
-            "Okay, let's have a chat with ${persona.name}.",
-            "Sure, we can talk to ${persona.name}."
-        ).random()
-        val outro = listOf(
-            "When you want to end the conversation, just say goodbye, stop, or that's enough.",
-            "To end the conversation, just say goodbye or stop."
-        ).random()
-        furhat.say("$intro $outro")
-        currentPersona = persona
-        goto(MainChat)
+    onResponse {
+        val text = it.text.lowercase()
+        when {
+            listKeywords.any     { kw -> text.contains(kw) } -> goto(BrowsePersonas())
+            describeKeywords.any { kw -> text.contains(kw) } -> goto(DescribeCase())
+            else -> reentry()
+        }
+    }
+
+    onNoResponse { reentry() }
+}
+
+// ── Browse Personas — paginated listing ───────────────────────────────────────
+
+fun BrowsePersonas(page: Int = 0) = state(Parent) {
+
+    val chunkSize = 3
+
+    onEntry {
+        val chunk  = personas.drop(page * chunkSize).take(chunkSize)
+        val isLast = (page + 1) * chunkSize >= personas.size
+
+        val listing = chunk.joinToString(". ") { it.fullDesc }
+        val prompt  = if (isLast)
+            "That's all of the available cases. Say a name to choose one."
+        else
+            "Say a name to choose one, or say 'more' to hear the next cases."
+
+        furhat.say(listing)
+        furhat.ask(prompt)
+    }
+
+    onReentry {
+        val chunk = personas.drop(page * chunkSize).take(chunkSize)
+        val names = chunk.dropLast(1).joinToString(", ") { it.name } + ", or " + chunk.last().name
+        furhat.ask("Which case would you like? $names. Or say 'more'.")
+    }
+
+    onResponse("more", "next", "continue", "keep going", "show more") {
+        val nextPage = if ((page + 1) * chunkSize >= personas.size) 0 else page + 1
+        goto(BrowsePersonas(nextPage))
+    }
+
+    onResponse("start over", "from the beginning", "go back", "restart") {
+        goto(BrowsePersonas(0))
+    }
+
+    onResponse("describe", "describe a case", "create a case", "my own", "custom", "make a case") {
+        goto(DescribeCase())
     }
 
     for (persona in personas) {
@@ -156,30 +195,24 @@ fun ChoosePersona() = state(Parent) {
 
     onResponse {
         val text = it.text.lowercase()
-        // Check for describe/generate intent first
-        if (describeKeywords.any { kw -> text.contains(kw) }) {
-            goto(DescribeCase())
-            return@onResponse
-        }
-        // Substring fallback — handles "I want to talk to Noah", "Lena", etc.
-        val matched = personas.find { persona ->
-            text.contains(persona.name.lowercase()) ||
-            persona.otherNames.any { alias -> text.contains(alias.lowercase()) }
+        val matched = personas.find { p ->
+            text.contains(p.name.lowercase()) ||
+            p.otherNames.any { alias -> text.contains(alias.lowercase()) }
         }
         if (matched != null) {
             startPersona(matched)
         } else {
-            val names = personas.dropLast(1).joinToString(", ") { it.name } + ", or " + personas.last().name
-            furhat.ask("Sorry, I didn't catch that. Please say one of the names: $names. Or say 'describe a case' to create your own.")
+            reentry()
         }
     }
 
     onNoResponse {
-        val names = personas.dropLast(1).joinToString(", ") { it.name } + ", or " + personas.last().name
         val reengage = listOf("Hello there.", "Hi there.", "Are you still there?").random()
-        furhat.ask("$reengage Please say one of the names: $names.")
+        furhat.ask("$reengage Which case would you like?")
     }
 }
+
+// ── Describe Case — custom persona generation ─────────────────────────────────
 
 fun DescribeCase(attempt: Int = 1) = state(Parent) {
 
