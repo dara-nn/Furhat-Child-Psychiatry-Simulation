@@ -18,9 +18,10 @@ var currentPersona: Persona = hostPersona
 var currentPersonaPage = 0
 
 // Silence reprompt tracking — one var per state that creates new instances each call
-var lastInitialInteractionSilence = ""
-var lastChoosePersonaSilence      = ""
-var lastDescribeCaseSilence       = ""
+var lastInitialInteractionSilence  = ""
+var lastChoosePersonaSilence       = ""
+var lastDescribeCaseSilence        = ""
+var choosePersonaNoResponseCount   = 0
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -124,7 +125,7 @@ val InitialInteraction: State = state(Parent) {
 
 // ── Choose Persona ────────────────────────────────────────────────────────────
 
-fun ChoosePersona(skipIntro: Boolean = false, noResponseCount: Int = 0): State = state(Parent) {
+fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
 
     val mainPrompt = "Would you like to browse the ready-made cases, or describe what you want to practise? Say 'browse' or 'describe'."
 
@@ -135,6 +136,7 @@ fun ChoosePersona(skipIntro: Boolean = false, noResponseCount: Int = 0): State =
     )
 
     onEntry {
+        choosePersonaNoResponseCount = 0
         currentPersonaPage = 0
         furhat.attend(users.random)
         if (!skipIntro) {
@@ -193,14 +195,19 @@ fun ChoosePersona(skipIntro: Boolean = false, noResponseCount: Int = 0): State =
     }
 
     onNoResponse {
-        if (noResponseCount < 3) {
+        choosePersonaNoResponseCount++
+        if (choosePersonaNoResponseCount < 3) {
             val phrase = pickSilencePhrase(silencePhrases, lastChoosePersonaSilence)
             lastChoosePersonaSilence = phrase
-            furhat.say(phrase)
-            goto(ChoosePersona(skipIntro = true, noResponseCount = noResponseCount + 1))
+            furhat.ask(phrase)
         } else {
-            furhat.say("Okay, I'll leave you to it.")
-            goto(Idle)
+            if (users.hasAny()) {
+                furhat.say("I'll wait here — come back whenever you're ready and say 'browse' or 'describe'.")
+                goto(Idle)
+            } else {
+                furhat.say("Okay, goodbye for now. Come back whenever you'd like to practise.")
+                goto(Idle)
+            }
         }
     }
 }
