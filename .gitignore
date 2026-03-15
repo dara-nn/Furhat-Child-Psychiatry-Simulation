@@ -26,3 +26,6 @@ Thumbs.db
 # FurhatOS specific
 # Ignore built skill files if not committing them
 *.skill
+
+# Local config (contains API keys — do not commit)
+local.properties

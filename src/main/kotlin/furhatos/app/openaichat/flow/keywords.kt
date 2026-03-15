@@ -7,8 +7,8 @@ fun String.normalizeForKeyword(): String =
 
 /** Full-utterance, case-insensitive match after stripping punctuation. */
 fun String.matchesKeyword(keywords: List<String>): Boolean {
-    val normalized = normalizeForKeyword()
-    return keywords.any { it.normalizeForKeyword() == normalized }
+    val padded = " ${normalizeForKeyword()} "
+    return keywords.any { " ${it.normalizeForKeyword()} " in padded }
 }
 
 // ── Silence reprompt helper ───────────────────────────────────────────────────
@@ -90,7 +90,7 @@ val skipKeywords = listOf(
 val nextPageKeywords = listOf(
     "more", "next", "next page", "keep going", "continue", "what else",
     "show me more", "more cases", "next ones", "any more", "any others",
-    "are there more", "what else is there", "and", "other ones", "others",
+    "are there more", "what else is there", "other ones", "others",
     "show more", "give me more", "more please", "next please", "is there more",
     "do you have more", "what other"
 )

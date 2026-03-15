@@ -22,6 +22,7 @@ var lastInitialInteractionSilence  = ""
 var lastChoosePersonaSilence       = ""
 var lastDescribeCaseSilence        = ""
 var choosePersonaNoResponseCount   = 0
+var browsePersonasNoResponseCount  = 0
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -53,7 +54,7 @@ private fun FlowControlRunner.handleGenerationResult(result: PersonaGenerationRe
                 "I'm having some trouble creating a case right now — you could try again in a moment. " +
                 "For now, let me show you the available cases."
             )
-            goto(ChoosePersona(skipIntro = true))
+            goto(BrowsePersonas)
         }
     }
 }
@@ -76,11 +77,13 @@ val InitialInteraction: State = state(Parent) {
             "so you can practise your interview skills."
         )
         delay(600)
-        furhat.ask("Would you like to give it a try?")
+        furhat.say("Would you like to give it a try?")
+        furhat.listen(timeout = 10000)
     }
 
     onReentry {
-        furhat.ask("Would you like to try a practice interview?")
+        furhat.say("Would you like to try a practice interview?")
+        furhat.listen(timeout = 10000)
     }
 
     onResponse<Yes> { goto(ChoosePersona()) }
@@ -112,14 +115,15 @@ val InitialInteraction: State = state(Parent) {
                 reentry()
             }
             // All failed — do NOT treat as affirmative
-            else -> furhat.ask("Sorry, I didn't quite get that. Would you like to try a practice interview?")
+            else -> { furhat.say("Sorry, I didn't quite get that. Would you like to try a practice interview?"); furhat.listen(timeout = 10000) }
         }
     }
 
     onNoResponse {
         val phrase = pickSilencePhrase(silencePhrases, lastInitialInteractionSilence)
         lastInitialInteractionSilence = phrase
-        furhat.ask(phrase)
+        furhat.say(phrase)
+        furhat.listen(timeout = 10000)
     }
 }
 
@@ -156,7 +160,8 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
     }
 
     onReentry {
-        furhat.ask("Say 'browse' to see the pre-made options, or 'describe' to tell me what you want to practise.")
+        furhat.say("Say 'browse' to see the pre-made options, or 'describe' to tell me what you want to practise.")
+        furhat.listen(timeout = 10000)
     }
 
     onResponse {
@@ -188,7 +193,7 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
                         val description = label.removePrefix("direct_description:").trim()
                         goto(DescribeCase(prefilled = description))
                     }
-                    else -> furhat.ask("Say 'browse' to see the pre-made options, or 'describe' to create your own.")
+                    else -> { furhat.say("Say 'browse' to see the pre-made options, or 'describe' to create your own."); furhat.listen(timeout = 10000) }
                 }
             }
         }
@@ -199,7 +204,8 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
         if (choosePersonaNoResponseCount < 3) {
             val phrase = pickSilencePhrase(silencePhrases, lastChoosePersonaSilence)
             lastChoosePersonaSilence = phrase
-            furhat.ask(phrase)
+            furhat.say(phrase)
+            furhat.listen(timeout = 10000)
         } else {
             furhat.say("I'll go quiet for now. Just say something whenever you're ready to start.")
             goto(Idle)
@@ -212,19 +218,10 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
 val BrowsePersonas: State by lazy {
 state(Parent) {
 
-    val chunkSize = 4
+    val chunkSize = 3
+    val visiblePersonas = personas.take(6)
     var lastPrompt        = ""
     var lastSilencePhrase = ""
-
-    fun buildListing(chunk: List<furhatos.app.openaichat.setting.Persona>): String {
-        return chunk.mapIndexed { i, p ->
-            when {
-                i == 0              -> "There's ${p.name} — ${p.desc}."
-                i == chunk.size - 1 -> "And there's ${p.name} — ${p.desc}."
-                else                -> "Then there's ${p.name} — ${p.desc}."
-            }
-        }.joinToString(" ")
-    }
 
     fun escapeStr(s: String): String = s
         .replace("\\", "\\\\")
@@ -267,29 +264,39 @@ Respond with ONLY the label.
 
     fun findPersonaInText(text: String): List<furhatos.app.openaichat.setting.Persona> {
         val normalized = text.lowercase().trim()
-        return personas.filter { p ->
+        return visiblePersonas.filter { p ->
             normalized.contains(p.name.lowercase()) ||
             p.otherNames.any { alias -> normalized.contains(alias.lowercase()) }
         }
     }
 
     onEntry {
-        val chunk   = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
-        val isLast  = (currentPersonaPage + 1) * chunkSize >= personas.size
+        browsePersonasNoResponseCount = 0
+        val chunk   = visiblePersonas.drop(currentPersonaPage * chunkSize).take(chunkSize)
+        val isLast  = (currentPersonaPage + 1) * chunkSize >= visiblePersonas.size
         val isFirst = currentPersonaPage == 0
 
         if (isFirst) {
-            furhat.say("I have ${personas.size} patient cases in total.")
+            furhat.say("I have ${visiblePersonas.size} patient cases in total.")
             delay(400)
         }
 
-        furhat.say(buildListing(chunk))
+        chunk.forEachIndexed { i, p ->
+            val line = when {
+                i == 0              -> "There's ${p.name} — ${p.desc}."
+                i == chunk.size - 1 -> "And there's ${p.name} — ${p.desc}."
+                else                -> "Then there's ${p.name} — ${p.desc}."
+            }
+            furhat.say(line)
+            if (i < chunk.size - 1) delay(200)
+        }
 
+        val namesList = chunk.joinToString(", ") { it.name }
         val cue = when {
-            isFirst && isLast -> "Say a name to pick one."
-            isFirst           -> "Say a name to pick one, or say 'more' to hear more."
-            isLast            -> "Say a name to pick one, or say 'back' to go back."
-            else              -> "Say a name, 'more' for more cases, or 'back' for the previous ones."
+            isFirst && isLast -> "$namesList — say a name to pick one."
+            isFirst           -> "$namesList — say a name to pick one, or 'more' to hear more."
+            isLast            -> "$namesList — say a name to pick one, or 'back' for the previous ones."
+            else              -> "$namesList — say a name, 'more' for more, or 'back' for the previous ones."
         }
         lastPrompt = cue
         furhat.say(cue)
@@ -297,8 +304,8 @@ Respond with ONLY the label.
     }
 
     onReentry {
-        val chunk  = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
-        val isLast = (currentPersonaPage + 1) * chunkSize >= personas.size
+        val chunk  = visiblePersonas.drop(currentPersonaPage * chunkSize).take(chunkSize)
+        val isLast = (currentPersonaPage + 1) * chunkSize >= visiblePersonas.size
         val names  = if (chunk.size == 1) chunk.first().name
                      else chunk.dropLast(1).joinToString(", ") { it.name } + ", or " + chunk.last().name
         val prompt = if (isLast) "Which one? $names."
@@ -309,21 +316,29 @@ Respond with ONLY the label.
     }
 
     onNoResponse {
-        val phrases = listOf(
-            "Are you still there? Just say a name to pick a case.",
-            "Take your time — say a name, 'more', or 'back'.",
-            "I'm here. Just say a name to pick one."
-        )
-        val phrase = pickSilencePhrase(phrases, lastSilencePhrase)
-        lastSilencePhrase = phrase
-        furhat.ask(phrase)
+        browsePersonasNoResponseCount++
+        if (browsePersonasNoResponseCount < 3) {
+            val phrases = listOf(
+                "Are you still there? Just say a name to pick a case.",
+                "Take your time — say a name, 'more', or 'back'.",
+                "I'm here. Just say a name to pick one."
+            )
+            val phrase = pickSilencePhrase(phrases, lastSilencePhrase)
+            lastSilencePhrase = phrase
+            furhat.say(phrase)
+            furhat.listen(timeout = 10000)
+        } else {
+            furhat.say("I'll go quiet for now. Just say something whenever you're ready to start.")
+            goto(Idle)
+        }
     }
 
     onResponse {
         val text = it.text
         when {
+            text.matchesKeyword(confusedKeywords)   -> goto(BrowsePersonas)
             text.matchesKeyword(nextPageKeywords) -> {
-                val isLast = (currentPersonaPage + 1) * chunkSize >= personas.size
+                val isLast = (currentPersonaPage + 1) * chunkSize >= visiblePersonas.size
                 if (isLast) {
                     furhat.say("Those are all the patient cases. Starting again from the beginning.")
                     currentPersonaPage = 0
@@ -353,7 +368,7 @@ Respond with ONLY the label.
                     1    -> startPersona(directMatches.first())
                     else -> {
                         furhat.say("Hmm…")
-                        val chunk = personas.drop(currentPersonaPage * chunkSize).take(chunkSize)
+                        val chunk = visiblePersonas.drop(currentPersonaPage * chunkSize).take(chunkSize)
                         val label = call { callGeminiText(buildClassifyPrompt(lastPrompt, text, chunk)) } as String
                         if (label.startsWith("select:")) {
                             val nameGuess = label.removePrefix("select:").trim()
@@ -362,12 +377,12 @@ Respond with ONLY the label.
                                 1    -> startPersona(matches.first())
                                 0    -> {
                                     val names = chunk.joinToString(", ") { it.name }
-                                    furhat.ask("I didn't catch that. These cases are $names.")
+                                    furhat.say("I didn't catch that. These cases are $names."); furhat.listen(timeout = 10000)
                                 }
-                                else -> furhat.ask("Did you mean ${matches[0].name} or ${matches[1].name}?")
+                                else -> { furhat.say("Did you mean ${matches[0].name} or ${matches[1].name}?"); furhat.listen(timeout = 10000) }
                             }
                         } else {
-                            val names = personas.drop(currentPersonaPage * chunkSize)
+                            val names = visiblePersonas.drop(currentPersonaPage * chunkSize)
                                 .take(chunkSize).joinToString(", ") { it.name }
                             furhat.ask("I didn't catch that. These cases are $names.")
                         }
@@ -395,8 +410,11 @@ fun DescribeCase(
         when {
             prefilled != null -> {
                 // Forwarded from ChoosePersona — skip asking, go straight to generation
+                println("DescribeCase.onEntry: prefilled='$prefilled'")
                 furhat.say("Got it. Let me put together a case for you — one moment.")
+                println("DescribeCase.onEntry: entering call block")
                 val result = call { generatePersonaFromDescription(prefilled) } as PersonaGenerationResult
+                println("DescribeCase.onEntry: result=$result")
                 handleGenerationResult(result, attempt = 1)
             }
             attempt == 1 -> { furhat.say(mainPrompt); furhat.listen(timeout = 10000) }
@@ -432,14 +450,19 @@ fun DescribeCase(
                     )
                 } as String
                 when (label) {
-                    "vague" -> furhat.ask(
-                        "No problem — it can be anything. A type of situation, something you find tricky, " +
-                        "a kind of patient. Whatever comes to mind."
-                    )
+                    "vague" -> {
+                        furhat.say(
+                            "No problem — it can be anything. A type of situation, something you find tricky, " +
+                            "a kind of patient. Whatever comes to mind."
+                        )
+                        furhat.listen(timeout = 10000)
+                    }
                     else -> {
                         // "description" or "unclear" — treat as description and attempt generation
+                        println("DescribeCase.onResponse: generating from text='$text'")
                         furhat.say("Let me put together a case for you — one moment.")
                         val result = call { generatePersonaFromDescription(text) } as PersonaGenerationResult
+                        println("DescribeCase.onResponse: result=$result")
                         handleGenerationResult(result, attempt)
                     }
                 }

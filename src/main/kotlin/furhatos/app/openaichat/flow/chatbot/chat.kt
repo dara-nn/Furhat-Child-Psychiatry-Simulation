@@ -84,10 +84,12 @@ val AfterChat: State = state(Parent) {
     onResponse {
         val text = it.text
         when {
-            text.matchesKeyword(startYesKeywords)  -> goto(ChoosePersona())
-            text.matchesKeyword(startNoKeywords)   -> { furhat.say("Okay, goodbye then."); goto(Idle) }
-            text.matchesKeyword(exitKeywords)      -> { furhat.say("Okay, goodbye then."); goto(Idle) }
-            text.matchesKeyword(helpKeywords)      -> {
+            text.matchesKeyword(startYesKeywords)       -> goto(ChoosePersona())
+            text.matchesKeyword(startNoKeywords)        -> { furhat.say("Okay, goodbye then."); goto(Idle) }
+            text.matchesKeyword(exitKeywords)           -> { furhat.say("Okay, goodbye then."); goto(Idle) }
+            text.matchesKeyword(switchToCustomKeywords) -> goto(DescribeCase())
+            text.matchesKeyword(listCasesKeywords)      -> goto(BrowsePersonas)
+            text.matchesKeyword(helpKeywords)           -> {
                 furhat.say("Would you like another case, or are you done for today?")
                 reentry()
             }

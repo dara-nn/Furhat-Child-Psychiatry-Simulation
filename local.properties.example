@@ -1,0 +1,6 @@
+# Copy this file to local.properties and fill in your API key.
+# local.properties is git-ignored and must be created manually.
+# It is bundled into the skill JAR at build time by build.gradle.
+
+# Get your key from https://aistudio.google.com/app/apikey
+gemini.api.key=YOUR_GEMINI_API_KEY_HERE
