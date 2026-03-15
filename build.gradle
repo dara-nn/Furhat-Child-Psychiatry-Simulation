@@ -73,6 +73,7 @@ shadowJar {
 
     from("skill.properties")
     from("assets")
+    from("local.properties")
 
     manifest {
         attributes(
