@@ -44,12 +44,12 @@ private fun FlowControlRunner.handleGenerationResult(result: PersonaGenerationRe
                 goto(DescribeCase(attempt = 2))
             } else {
                 furhat.say("I'm not sure I understood well enough. Let me show you the available cases instead.")
-                goto(ChoosePersona())
+                goto(ChoosePersona(skipIntro = true))
             }
         }
         is GenerationFailed -> {
             furhat.say("Something went wrong there. Let me show you the available cases.")
-            goto(ChoosePersona())
+            goto(ChoosePersona(skipIntro = true))
         }
     }
 }
@@ -121,7 +121,7 @@ val InitialInteraction: State = state(Parent) {
 
 // ── Choose Persona ────────────────────────────────────────────────────────────
 
-fun ChoosePersona() = state(Parent) {
+fun ChoosePersona(skipIntro: Boolean = false) = state(Parent) {
 
     val mainPrompt = "Would you like to browse the ready-made cases, or describe what you want to practise? Say 'browse' or 'describe'."
 
@@ -134,15 +134,19 @@ fun ChoosePersona() = state(Parent) {
     onEntry {
         currentPersonaPage = 0
         furhat.attend(users.random)
-        furhat.say(
-            "I have a set of pre-made patient cases — " +
-            "each one is a different child with a different background and presenting concern."
-        )
-        delay(600)
-        furhat.ask(
-            "You can browse those, or if you'd like to practise something specific, " +
-            "I can create a custom case for you. Say 'browse' or 'describe'."
-        )
+        if (!skipIntro) {
+            furhat.say(
+                "I have a set of pre-made patient cases — " +
+                "each one is a different child with a different background and symptoms."
+            )
+            delay(600)
+            furhat.ask(
+                "You can browse those, or if you'd like to practise something specific, " +
+                "I can create a custom case for you. Say 'browse' or 'describe'."
+            )
+        } else {
+            furhat.ask("Say 'browse' or 'describe'.")
+        }
     }
 
     onReentry {
@@ -297,7 +301,7 @@ Respond with ONLY the label.
                 }
                 goto(BrowsePersonas)
             }
-            text.matchesKeyword(goBackKeywords)       -> { currentPersonaPage = 0; goto(ChoosePersona()) }
+            text.matchesKeyword(goBackKeywords)       -> { currentPersonaPage = 0; goto(ChoosePersona(skipIntro = true)) }
             text.matchesKeyword(switchToCustomKeywords) -> goto(DescribeCase())
             // Global keywords
             text.matchesKeyword(exitKeywords)         -> { furhat.say("Okay, goodbye."); goto(Idle) }
@@ -365,8 +369,8 @@ fun DescribeCase(
 
         // State-specific keywords — checked first
         when {
-            text.matchesKeyword(goBackKeywords)   -> { furhat.say("No problem."); goto(ChoosePersona()) }
-            text.matchesKeyword(skipKeywords)     -> { furhat.say("No problem. Let me show you the available cases."); goto(ChoosePersona()) }
+            text.matchesKeyword(goBackKeywords)   -> { furhat.say("No problem."); goto(ChoosePersona(skipIntro = true)) }
+            text.matchesKeyword(skipKeywords)     -> { furhat.say("No problem. Let me show you the available cases."); goto(ChoosePersona(skipIntro = true)) }
             text.matchesKeyword(listCasesKeywords) -> { furhat.say("Sure."); goto(BrowsePersonas) }
             // Global keywords
             text.matchesKeyword(exitKeywords)     -> { furhat.say("Okay, goodbye."); goto(Idle) }
@@ -416,7 +420,7 @@ fun DescribeCase(
             goto(DescribeCase(attempt = attempt, noResponseCount = noResponseCount + 1))
         } else {
             furhat.say("No worries. Let me show you the available cases instead.")
-            goto(ChoosePersona())
+            goto(ChoosePersona(skipIntro = true))
         }
     }
 }

@@ -95,6 +95,8 @@ val nextPageKeywords = listOf(
 
 val switchToCustomKeywords = listOf(
     "describe", "create", "custom", "custom case", "create my own", "make my own",
+    "describe a case", "describe case", "describe my case", "describe my own case",
+    "create a case", "create my own case", "make a case", "make my own case",
     "i'd rather describe", "let me describe", "i want to describe",
     "i have something in mind", "i want my own", "my own", "own case",
     "make one", "create one", "i want to make", "i want to create",
