@@ -48,8 +48,13 @@ private fun FlowControlRunner.handleGenerationResult(result: PersonaGenerationRe
             }
         }
         is GenerationFailed -> {
-            furhat.say("Something went wrong there. Let me show you the available cases.")
-            goto(ChoosePersona(skipIntro = true))
+            if (attempt < 2) {
+                furhat.ask("I didn't quite catch that. Could you describe what you'd like to practise in a bit more detail?")
+                goto(DescribeCase(attempt = 2))
+            } else {
+                furhat.say("I'm having trouble with that one. Let me show you the available cases instead.")
+                goto(ChoosePersona(skipIntro = true))
+            }
         }
     }
 }
@@ -140,13 +145,14 @@ fun ChoosePersona(skipIntro: Boolean = false) = state(Parent) {
                 "each one is a different child with a different background and symptoms."
             )
             delay(600)
-            furhat.ask(
+            furhat.say(
                 "You can browse those, or if you'd like to practise something specific, " +
                 "I can create a custom case for you. Say 'browse' or 'describe'."
             )
         } else {
-            furhat.ask("Say 'browse' or 'describe'.")
+            furhat.say("Say 'browse' or 'describe'.")
         }
+        furhat.listen(timeout = 10000)
     }
 
     onReentry {
@@ -359,8 +365,8 @@ fun DescribeCase(
                 val result = call { generatePersonaFromDescription(prefilled) } as PersonaGenerationResult
                 handleGenerationResult(result, attempt = 1)
             }
-            attempt == 1 -> furhat.ask(mainPrompt)
-            else         -> furhat.listen()   // attempt 2: clarification question already said
+            attempt == 1 -> { furhat.say(mainPrompt); furhat.listen(timeout = 10000) }
+            else         -> furhat.listen(timeout = 10000)   // attempt 2: clarification question already said
         }
     }
 

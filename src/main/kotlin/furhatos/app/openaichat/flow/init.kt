@@ -5,9 +5,7 @@ import furhatos.app.openaichat.setting.activate
 import furhatos.app.openaichat.setting.hostPersona
 import furhatos.event.requests.RequestConfigElevenlabs
 import furhatos.event.responses.ResponseConfigElevenlabs
-import furhatos.flow.kotlin.State
-import furhatos.flow.kotlin.state
-import furhatos.flow.kotlin.users
+import furhatos.flow.kotlin.*
 
 val elevenLabsApiKey: String = "<ELEVENLABS_KEY_REDACTED>"
 
