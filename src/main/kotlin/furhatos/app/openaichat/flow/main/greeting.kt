@@ -320,97 +320,87 @@ Respond with ONLY the label.
 }
 }
 
-// ── Describe Case — custom persona generation ─────────────────────────────────
+// ── Describe Case ─────────────────────────────────────────────────────────────
 
-fun DescribeCase(attempt: Int = 1, noResponseCount: Int = 0): State = state(Parent) {
+fun DescribeCase(
+    attempt: Int = 1,
+    noResponseCount: Int = 0,
+    prefilled: String? = null
+): State = state(Parent) {
 
-    val nonAnswerKeywords = listOf(
-        "don't know", "dont know", "not sure", "i'm thinking", "im thinking",
-        "hmm", "um", "uh", "let me think", "good question", "i have no idea",
-        "no idea", "pass"
-    )
+    val mainPrompt =
+        "Tell me what you'd like to practise. You can describe anything — " +
+        "a situation, something you find challenging, a type of patient, anything at all."
 
     onEntry {
-        if (attempt == 1) {
-            furhat.ask(
-                "Tell me what you'd like to practise. For example: " +
-                "you could say 'I struggle with resistant teenagers', " +
-                "'I want a Vietnamese background', or " +
-                "'I find it hard to interview young boys with depression'."
-            )
-        } else {
-            furhat.listen()
+        when {
+            prefilled != null -> {
+                // Forwarded from ChoosePersona — skip asking, go straight to generation
+                furhat.say("Got it. Let me put together a case for you — one moment.")
+                val result = call { generatePersonaFromDescription(prefilled) } as PersonaGenerationResult
+                handleGenerationResult(result, attempt = 1)
+            }
+            attempt == 1 -> furhat.ask(mainPrompt)
+            else         -> furhat.listen()   // attempt 2: clarification question already said
         }
-    }
-
-    onResponse("go back", "back", "list cases", "show me the list", "existing cases",
-               "choose a case", "available cases", "show cases", "pick a case") {
-        furhat.say("No problem. Let me show you the available cases.")
-        goto(ChoosePersona())
     }
 
     onResponse {
-        val text = it.text.lowercase()
-        val originalText = it.text
+        val text = it.text
 
-        if (listKeywords.any { kw -> text.contains(kw) }) {
-            furhat.say("No problem. Let me show you the available cases.")
-            goto(ChoosePersona())
-            return@onResponse
-        }
-
-        if (nonAnswerKeywords.any { kw -> text.contains(kw) }) {
-            furhat.ask(
-                "No problem. For example — you could say " +
-                "'resistant teenager', 'separation anxiety in a young child', " +
-                "or 'I struggle with patients who minimise their symptoms'."
-            )
-            return@onResponse
-        }
-
-        if (text.contains("never mind") || text.contains("nevermind") || text.contains("skip")) {
-            furhat.say("No problem. Let me show you the available cases.")
-            goto(ChoosePersona())
-            return@onResponse
-        }
-
-        furhat.say("Got it. Generating your custom case, please wait a moment.")
-        val result = call { generatePersonaFromDescription(originalText) } as PersonaGenerationResult
-
-        when (result) {
-            is GeneratedPersona -> {
+        // State-specific keywords — checked first
+        when {
+            text.matchesKeyword(goBackKeywords)   -> { furhat.say("No problem."); goto(ChoosePersona()) }
+            text.matchesKeyword(skipKeywords)     -> { furhat.say("No problem. Let me show you the available cases."); goto(ChoosePersona()) }
+            text.matchesKeyword(listCasesKeywords) -> { furhat.say("Sure."); goto(BrowsePersonas) }
+            // Global keywords
+            text.matchesKeyword(exitKeywords)     -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(helpKeywords)     -> {
                 furhat.say(
-                    "Done. Meet ${result.persona.name} — ${result.persona.desc}. " +
-                    "When you want to end the conversation, just say goodbye or stop."
+                    "Just tell me what you'd like to practise — anything at all. " +
+                    "Or I can show you the pre-made cases instead."
                 )
-                currentPersona = result.persona
-                goto(MainChat)
+                reentry()
             }
-            is NeedsClarification -> {
-                if (attempt < 2) {
-                    furhat.say(result.question)
-                    goto(DescribeCase(attempt = 2))
-                } else {
-                    furhat.say(
-                        "I'm not sure I understood your training need well enough to generate a case. " +
-                        "Let me show you the available cases instead."
+            else -> {
+                // LLM tier — classify: vague / description / unclear→treat as description
+                furhat.say("Hmm…")
+                val label = call {
+                    classifyIntent(
+                        mainPrompt,
+                        text,
+                        "- vague\n- description"
                     )
-                    goto(ChoosePersona())
+                } as String
+                when (label) {
+                    "vague" -> furhat.ask(
+                        "No problem — it can be anything. A type of situation, something you find tricky, " +
+                        "a kind of patient. Whatever comes to mind."
+                    )
+                    else -> {
+                        // "description" or "unclear" — treat as description and attempt generation
+                        furhat.say("Let me put together a case for you — one moment.")
+                        val result = call { generatePersonaFromDescription(text) } as PersonaGenerationResult
+                        handleGenerationResult(result, attempt)
+                    }
                 }
-            }
-            is GenerationFailed -> {
-                furhat.say("I'm sorry, something went wrong generating the case. Let me show you the available cases.")
-                goto(ChoosePersona())
             }
         }
     }
 
     onNoResponse {
+        val silencePhrases = listOf(
+            "I didn't hear anything. What would you like to practise?",
+            "Take your time. Anything at all — a type of patient, a situation, a challenge.",
+            "Still there? Just describe anything you'd like to work on."
+        )
         if (noResponseCount < 2) {
-            furhat.ask("I didn't hear anything. What would you like to practise?")
+            val phrase = pickSilencePhrase(silencePhrases, lastDescribeCaseSilence)
+            lastDescribeCaseSilence = phrase
+            furhat.ask(phrase)
             goto(DescribeCase(attempt = attempt, noResponseCount = noResponseCount + 1))
         } else {
-            furhat.say("No problem. Let me show you the available cases.")
+            furhat.say("No worries. Let me show you the available cases instead.")
             goto(ChoosePersona())
         }
     }
