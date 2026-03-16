@@ -31,7 +31,7 @@ var browsePersonasNoResponseCount  = 0
  * Then navigates to MainChat where the face switch happens.
  */
 internal fun FlowControlRunner.startPersona(persona: Persona) {
-    furhat.say("Alright, you're about to meet ${persona.name}. Say 'stop session' at any time to end.")
+    furhat.say("Alright, you're about to meet ${persona.name} — ${persona.desc}. Say — stop session — at any time to end.")
     currentPersona = persona
     goto(MainChat)
 }
@@ -134,9 +134,9 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
     val mainPrompt = "Would you like to browse the ready-made cases, or describe what you want to practise? Say 'browse' or 'describe'."
 
     val silencePhrases = listOf(
-        "Still there? Say 'browse' or 'describe'.",
-        "Take your time — say 'browse' to see the cases, or 'describe' to create your own.",
-        "I'm here. Just say 'browse' or 'describe'."
+        "Still there? Say — browse — or — describe —.",
+        "Take your time — say — browse — to see the cases, or — describe — to create your own.",
+        "I'm here. Just say — browse — or — describe —."
     )
 
     onEntry {
@@ -149,18 +149,20 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
                 "each one is a different child with a different background and symptoms."
             )
             delay(600)
+            furhat.say("You can browse those, or — I can build a custom case just for you.")
+            delay(400)
             furhat.say(
-                "You can browse those, or if you'd like to practise something specific, " +
-                "I can create a custom case for you. Say 'browse' or 'describe'."
+                "Just say — browse — to see the ready-made cases, " +
+                "or say — describe — and tell me what kind of patient or situation you'd like to practise."
             )
         } else {
-            furhat.say("Say 'browse' or 'describe'.")
+            furhat.say("Say — browse — or — describe —.")
         }
         furhat.listen(timeout = 10000)
     }
 
     onReentry {
-        furhat.say("Say 'browse' to see the pre-made options, or 'describe' to tell me what you want to practise.")
+        furhat.say("Say — browse — to see the pre-made options, or — describe — to tell me what you want to practise.")
         furhat.listen(timeout = 10000)
     }
 
@@ -173,7 +175,7 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
             // Global keywords
             text.matchesKeyword(exitKeywords)           -> { furhat.say("Okay, goodbye."); goto(Idle) }
             text.matchesKeyword(helpKeywords) || text.matchesKeyword(confusedKeywords) -> {
-                furhat.say("Say 'browse' to see the pre-made options, or 'describe' to create your own.")
+                furhat.say("Say — browse — to see the pre-made options, or — describe — to create your own.")
                 reentry()
             }
             // LLM — only for natural descriptions that should skip straight to generation
@@ -193,7 +195,7 @@ fun ChoosePersona(skipIntro: Boolean = false): State = state(Parent) {
                         val description = label.removePrefix("direct_description:").trim()
                         goto(DescribeCase(prefilled = description))
                     }
-                    else -> { furhat.say("Say 'browse' to see the pre-made options, or 'describe' to create your own."); furhat.listen(timeout = 10000) }
+                    else -> { furhat.say("Say — browse — to see the pre-made options, or — describe — to create your own."); furhat.listen(timeout = 10000) }
                 }
             }
         }
@@ -282,21 +284,22 @@ Respond with ONLY the label.
         }
 
         chunk.forEachIndexed { i, p ->
+            val eName = "${p.name}"
             val line = when {
-                i == 0              -> "There's ${p.name} — ${p.desc}."
-                i == chunk.size - 1 -> "And there's ${p.name} — ${p.desc}."
-                else                -> "Then there's ${p.name} — ${p.desc}."
+                i == 0              -> "There's $eName — ${p.desc}."
+                i == chunk.size - 1 -> "And there's $eName — ${p.desc}."
+                else                -> "Then there's $eName — ${p.desc}."
             }
             furhat.say(line)
             if (i < chunk.size - 1) delay(200)
         }
 
-        val namesList = chunk.joinToString(", ") { it.name }
+        val namesList = chunk.joinToString(", ") { "— ${it.name} —" }
         val cue = when {
             isFirst && isLast -> "$namesList — say a name to pick one."
-            isFirst           -> "$namesList — say a name to pick one, or 'more' to hear more."
-            isLast            -> "$namesList — say a name to pick one, or 'back' for the previous ones."
-            else              -> "$namesList — say a name, 'more' for more, or 'back' for the previous ones."
+            isFirst           -> "$namesList — say a name to pick one, or — more — to hear more."
+            isLast            -> "$namesList — say a name to pick one, or — back — for the previous ones."
+            else              -> "$namesList — say a name, — more — for more, or — back — for the previous ones."
         }
         lastPrompt = cue
         furhat.say(cue)
@@ -306,10 +309,10 @@ Respond with ONLY the label.
     onReentry {
         val chunk  = visiblePersonas.drop(currentPersonaPage * chunkSize).take(chunkSize)
         val isLast = (currentPersonaPage + 1) * chunkSize >= visiblePersonas.size
-        val names  = if (chunk.size == 1) chunk.first().name
-                     else chunk.dropLast(1).joinToString(", ") { it.name } + ", or " + chunk.last().name
+        val names  = if (chunk.size == 1) "— ${chunk.first().name} —"
+                     else chunk.dropLast(1).joinToString(", ") { "— ${it.name} —" } + ", or — ${chunk.last().name} —"
         val prompt = if (isLast) "Which one? $names."
-                     else        "Which one? $names. Or say 'more'."
+                     else        "Which one? $names. Or say — more —."
         lastPrompt = prompt
         furhat.say(prompt)
         furhat.listen(timeout = 10000)
@@ -403,8 +406,10 @@ fun DescribeCase(
 ): State = state(Parent) {
 
     val mainPrompt =
-        "Tell me what you'd like to practise. You can describe anything — " +
-        "a situation, something you find challenging, a type of patient, anything at all."
+        "I'll create a patient based on what you describe. " +
+        "For example: a withdrawn 10-year-old who stopped talking after his parents separated. " +
+        "You can add as much as you like — age, personality, background, how they behave. " +
+        "What would you like to practise?"
 
     onEntry {
         when {
@@ -417,8 +422,8 @@ fun DescribeCase(
                 println("DescribeCase.onEntry: result=$result")
                 handleGenerationResult(result, attempt = 1)
             }
-            attempt == 1 -> { furhat.say(mainPrompt); furhat.listen(timeout = 10000) }
-            else         -> furhat.listen(timeout = 10000)   // attempt 2: clarification question already said
+            attempt == 1 -> { furhat.say(mainPrompt); furhat.listen(timeout = 20000, endSil = 2500, maxSpeech = 60000) }
+            else         -> furhat.listen(timeout = 20000, endSil = 2500, maxSpeech = 60000)   // attempt 2: clarification question already said
         }
     }
 
@@ -440,30 +445,39 @@ fun DescribeCase(
                 reentry()
             }
             else -> {
-                // LLM tier — classify: vague / description / unclear→treat as description
-                furhat.say("Hmm…")
-                val label = call {
-                    classifyIntent(
-                        mainPrompt,
-                        text,
-                        "- vague\n- description"
+                val wordCount = text.trim().split(Regex("\\s+")).size
+                if (wordCount < 4) {
+                    furhat.say(
+                        "Could you tell me a bit more? For example: a withdrawn child who won't answer questions, " +
+                        "or a teenager with a difficult home situation."
                     )
-                } as String
-                when (label) {
-                    "vague" -> {
-                        furhat.say(
-                            "No problem — it can be anything. A type of situation, something you find tricky, " +
-                            "a kind of patient. Whatever comes to mind."
+                    furhat.listen(timeout = 20000, endSil = 2500, maxSpeech = 60000)
+                } else {
+                    // LLM tier — classify: vague / description / unclear→treat as description
+                    furhat.say("Hmm…")
+                    val label = call {
+                        classifyIntent(
+                            mainPrompt,
+                            text,
+                            "- vague\n- description"
                         )
-                        furhat.listen(timeout = 10000)
-                    }
-                    else -> {
-                        // "description" or "unclear" — treat as description and attempt generation
-                        println("DescribeCase.onResponse: generating from text='$text'")
-                        furhat.say("Let me put together a case for you — one moment.")
-                        val result = call { generatePersonaFromDescription(text) } as PersonaGenerationResult
-                        println("DescribeCase.onResponse: result=$result")
-                        handleGenerationResult(result, attempt)
+                    } as String
+                    when (label) {
+                        "vague" -> {
+                            furhat.say(
+                                "No problem — it can be anything. A type of situation, something you find tricky, " +
+                                "a kind of patient. Whatever comes to mind."
+                            )
+                            furhat.listen(timeout = 20000, endSil = 2500, maxSpeech = 60000)
+                        }
+                        else -> {
+                            // "description" or "unclear" — treat as description and attempt generation
+                            println("DescribeCase.onResponse: generating from text='$text'")
+                            furhat.say("Let me put together a case for you — one moment.")
+                            val result = call { generatePersonaFromDescription(text) } as PersonaGenerationResult
+                            println("DescribeCase.onResponse: result=$result")
+                            handleGenerationResult(result, attempt)
+                        }
                     }
                 }
             }

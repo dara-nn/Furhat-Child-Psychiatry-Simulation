@@ -179,7 +179,7 @@ private fun extractGeminiText(jsonResponse: String): String? {
 }
 
 private fun buildMetaPrompt(userDescription: String): String = """
-You are helping design a fictional child patient character for a medical training simulation.
+You are helping design a fictional child or adolescent patient character for a child psychiatry training simulation.
 This is an educational tool used by psychiatry students to practise clinical interview skills.
 A trainee described their learning goal as: "${escapeForJson(userDescription)}"
 
@@ -188,12 +188,23 @@ Respond ONLY with a JSON object (no markdown, no extra text) with these exact fi
   "name": "<first name>",
   "age": <integer 6-17>,
   "gender": "<male|female|neutral>",
-  "condition": "<short diagnostic label>",
+  "condition": "<short psychiatric diagnostic label, e.g. ADHD, depression, anxiety, ODD, autism>",
   "difficulty": "<easy|medium|hard>",
-  "intro": "<opening line the character says when greeted, 1 sentence, in character>",
-  "desc": "<short 3-8 word description>",
-  "systemPrompt": "<full character brief — include personality, communication style, backstory, presenting concerns, and rules for staying in character>"
+  "intro": "<opening line the character says when greeted — 1 short sentence, in character, age-appropriate>",
+  "desc": "<short description, e.g. '14-year-old boy with ADHD'>",
+  "systemPrompt": "<character brief — follow the structure and rules below>"
 }
+
+Structure for the systemPrompt field (use these exact section headings):
+You are [name], a [age]-year-old [gender] with [condition]. [1-sentence backstory]. This is a [difficulty] difficulty case.
+Personality and communication style:
+- [3-4 bullet points: how they speak, their attitude, openness level, typical responses]
+Symptoms and backstory:
+- [3-4 bullet points: specific symptoms, what brought them in, what their life looks like]
+Rules:
+- Keep responses to a maximum of four sentences.
+- Never break character or mention that you are an AI.
+- [1-2 case-specific rules, e.g. difficulty opening up, deflecting certain topics]
 """.trimIndent()
 
 private fun extractStringField(json: String, fieldName: String): String {
@@ -296,7 +307,7 @@ fun parsePersonaJson(json: String): PersonaGenerationResult {
 }
 
 fun generatePersonaFromDescription(userDescription: String): PersonaGenerationResult {
-    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
     println("generatePersona: CALLED with description='$userDescription'")
     return try {
         val prompt = buildMetaPrompt(userDescription)
@@ -344,7 +355,7 @@ fun generatePersonaFromDescription(userDescription: String): PersonaGenerationRe
  * Temperature 0 for deterministic classification.
  */
 fun callGeminiText(prompt: String): String {
-    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
     return try {
         val requestBody = """
         {
