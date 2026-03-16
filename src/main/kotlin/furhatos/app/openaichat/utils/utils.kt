@@ -22,10 +22,10 @@ fun FlowControlRunner.askForAnything(text: String) {
 
 val random = Random(0)
 
-fun GazeAversion(duration: Double = 1.0) = defineGesture("GazeAversion") {
+fun GazeAversion(duration: Double = 1.0, direction: Int = random.nextInt(4)) = defineGesture("GazeAversion") {
     val dur = duration.coerceAtLeast(0.2)
     frame(0.05, dur-0.05) {
-        when (random.nextInt(4)) {
+        when (direction) {
             0 -> {
                 ARKitParams.EYE_LOOK_DOWN_LEFT to 0.5
                 ARKitParams.EYE_LOOK_DOWN_RIGHT to 0.5
