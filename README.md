@@ -1,72 +1,81 @@
 # Furhat Child Psychiatry Simulation
 
-## Description
+A FurhatOS skill for training child psychiatry interview skills. The robot simulates AI-powered child patients with distinct psychological profiles, allowing clinicians to practise clinical interviews in a safe, repeatable environment.
 
-This FurhatOS skill provides a training tool for child psychiatry by simulating clinical interviews with AI-powered child patients. The skill integrates with Large Language Models (LLMs) such as OpenAI's GPT and Google's Gemini to generate realistic responses based on predefined personas representing different child psychological profiles.
+## Pre-Made Cases
 
-The skill uses the [Simple-OpenAI](https://github.com/sashirestela/simple-openai) library for OpenAI integration and includes support for Gemini API for alternative AI responses.
+| Name | Age / Background | Condition | Difficulty |
+|---|---|---|---|
+| Helmi | 12F, Finnish | Social anxiety | Easy |
+| Lauri | 14M, Finnish | Depression | Medium |
+| Emmi | 8F, Finnish | Separation anxiety | Easy |
+| Mei | 10F, Chinese | Generalized anxiety | Medium |
+| Asha | 15F, Indian | Perfectionism and anxiety | Medium |
+| Carlos | 17M, Mexican | Masked depression | Hard |
+| Dmitri | 16M, Russian | Irritable depression | Hard |
 
-## Features
+All personas speak with a condition-appropriate emotional tone and never break character.
 
-- **Persona-Based Simulation**: Role-play as various child patients with distinct personalities, backgrounds, and psychological conditions.
-- **AI-Powered Responses**: Leverages advanced LLMs to provide contextually appropriate and dynamic responses during interviews.
-- **Interactive Training**: Practice clinical interview techniques in a safe, simulated environment.
-- **Multi-Model Support**: Supports both OpenAI and Gemini models for flexibility.
+## Custom Case Generation
+
+Clinicians can describe any patient they want to practise with. The robot uses Gemini to generate a full persona on the fly — including name, backstory, symptoms, personality, and a system prompt — matched to a face and voice by age, gender, and cultural background.
+
+## How It Works
+
+Each navigation state uses a two-tier intent pipeline:
+1. **Keyword matching** — fast, no API call, checked first
+2. **LLM classification** — Gemini classifies meaning when no keyword matches
 
 ## Requirements
 
-- **Furhat Robot**: A Furhat robot to run the skill.
-- **API Keys**:
-  - OpenAI API key (obtain from [OpenAI](https://openai.com/api/)).
-  - Gemini API key (configured in the code).
-- **Software**:
-  - Java/Kotlin development environment.
-  - Gradle for building the project.
+- Furhat robot running FurhatOS
+- Gemini API key — get one at [aistudio.google.com](https://aistudio.google.com/app/apikey)
+- JDK 15 (set `org.gradle.java.home` in `gradle.properties`)
+- Gradle
 
-## Installation
+## Setup
 
-1. **Clone the Repository**:
+1. **Clone the repo**
    ```bash
-   git clone <repository-url>
-   cd furhat-child-psychiatry-simulation
+   git clone https://github.com/dara-nn/Furhat-Child-Psychiatry-Simulation.git
+   cd Furhat-Child-Psychiatry-Simulation
    ```
 
-2. **Configure API Keys**:
-   - Set your OpenAI API key in `openai.kt` (or the relevant configuration file).
-   - The Gemini API key is hardcoded in `gemini.kt` for demonstration; update it with your own key in a production environment.
-
-3. **Build the Project**:
+2. **Add your Gemini API key**
    ```bash
-   ./gradlew build
+   cp local.properties.example local.properties
+   # Edit local.properties and paste your key
    ```
 
-4. **Deploy to Furhat**:
-   - Transfer the built skill file (e.g., `OpenAIChat_1.1.0.skill`) to your Furhat robot.
-   - Install and run the skill on the Furhat platform.
+3. **Set your local JDK path** (create `gradle.properties` in the project root)
+   ```properties
+   org.gradle.java.home=/path/to/your/jdk-15
+   ```
 
-## Usage
+4. **Build**
+   ```bash
+   ./gradlew shadowJar
+   ```
+   This produces `OpenAIChat_1.1.0.skill` in `build/libs/`.
 
-1. **Start the Skill**: Launch the skill on your Furhat robot.
-2. **Initial Interaction**: Furhat greets the user and offers to start the simulation.
-3. **Choose Persona**: Select from available child patient personas to begin the role-play.
-4. **Conduct Interview**: Engage in a clinical interview. Furhat will respond as the selected persona using AI-generated dialogue.
-5. **End Session**: Conclude the simulation as needed.
+5. **Deploy to Furhat**
+   Upload the `.skill` file via the Furhat dashboard and launch it.
 
-## Configuration
+## Project Structure
 
-- **Personas**: Customize or add new child patient personas in the `setting/` directory.
-- **AI Models**: Switch between OpenAI and Gemini by modifying the chatbot logic in `flow/chatbot/`.
+```
+src/main/kotlin/furhatos/app/openaichat/
+├── flow/
+│   ├── chatbot/        # Gemini API integration and custom case generation
+│   ├── main/           # Conversation states (greeting, idle, chat)
+│   ├── keywords.kt     # Keyword lists for intent matching
+│   └── parent.kt       # Shared state behaviour
+└── setting/
+    └── persona.kt      # Persona definitions and face/voice activation
+```
 
-## Contributing
+## Acknowledgements
 
-Contributions are welcome! Please submit issues or pull requests for improvements, bug fixes, or new features.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE). Ensure compliance with API terms from OpenAI and Google.
-
-## Acknowledgments
-
-- [FurhatOS](https://furhatrobotics.com/) for the robot platform.
-- [Simple-OpenAI](https://github.com/sashirestela/simple-openai) for OpenAI integration.
-- OpenAI and Google for their LLM APIs.
+- [FurhatOS](https://furhatrobotics.com/) — robot platform
+- [Google Gemini](https://deepmind.google/technologies/gemini/) — language model
+- [ElevenLabs](https://elevenlabs.io/) — voices
