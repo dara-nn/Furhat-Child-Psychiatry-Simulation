@@ -1,6 +1,7 @@
 package furhatos.app.openaichat.flow.chatbot
 
 import furhatos.app.openaichat.flow.*
+import furhatos.app.openaichat.flow.chatbot.classifyIntent
 import furhatos.app.openaichat.setting.activate
 import furhatos.app.openaichat.setting.hostPersona
 import furhatos.app.openaichat.setting.Persona
@@ -31,13 +32,15 @@ val MainChat = state(Parent) {
     }
 
     onReentry {
-        furhat.listen()
+        furhat.listen(endSil = 5000, maxSpeech = 60000)
     }
 
     onResponse {
         val text = it.text
         // ONLY stop_session keywords active — "stop", "bye", "help" etc. go to the persona
-        if (text.matchesKeyword(stopSessionKeywords)) {
+        if (text.isMinimalInput()) {
+            furhat.listen(endSil = 5000, maxSpeech = 60000) // patient waits silently — realistic for acknowledgements
+        } else if (text.matchesKeyword(stopSessionKeywords)) {
             furhat.say("Okay, ending the session.")
             concealedSwitch(hostPersona)
             furhat.say(
@@ -78,13 +81,18 @@ val AfterChat: State = state(Parent) {
         furhat.ask("Would you like to talk to someone else?")
     }
 
-    onResponse<Yes> { goto(ChoosePersona()) }
+    onResponse<Yes> { goto(ChooseMode(skipIntro = true)) }
     onResponse<No>  { furhat.say("Okay, goodbye then."); goto(Idle) }
 
     onResponse {
         val text = it.text
+        // Persona name match first — catches "I want to talk to Lauri" before startYesKeywords
+        val matched = personas.find { p ->
+            text.normalizeForKeyword().contains(p.name.lowercase()) ||
+            p.otherNames.any { alias -> text.normalizeForKeyword().contains(alias.lowercase()) }
+        }
         when {
-            text.matchesKeyword(startYesKeywords)       -> goto(ChoosePersona())
+            matched != null                             -> startPersona(matched)
             text.matchesKeyword(startNoKeywords)        -> { furhat.say("Okay, goodbye then."); goto(Idle) }
             text.matchesKeyword(exitKeywords)           -> { furhat.say("Okay, goodbye then."); goto(Idle) }
             text.matchesKeyword(switchToCustomKeywords) -> goto(DescribeCase())
@@ -93,16 +101,24 @@ val AfterChat: State = state(Parent) {
                 furhat.say("Would you like another case, or are you done for today?")
                 reentry()
             }
+            text.matchesKeyword(startYesKeywords)       -> goto(ChooseMode(skipIntro = true))
+            // LLM fallback — context-aware classification for natural phrasing
             else -> {
-                // Try persona name match (direct jump)
-                val matched = personas.find { p ->
-                    text.normalizeForKeyword().contains(p.name.lowercase()) ||
-                    p.otherNames.any { alias -> text.normalizeForKeyword().contains(alias.lowercase()) }
-                }
-                if (matched != null) {
-                    startPersona(matched)
-                } else {
-                    furhat.ask("Would you like to try another case, or go straight to a specific one?")
+                furhat.say("Hmm…")
+                val label = call {
+                    classifyIntent(
+                        "Would you like to talk to someone else?",
+                        text,
+                        "- yes\n- no\n- browse\n- custom\n- exit\n- unclear"
+                    )
+                } as String
+                when (label) {
+                    "yes"    -> goto(ChooseMode(skipIntro = true))
+                    "no"     -> { furhat.say("Okay, goodbye then."); goto(Idle) }
+                    "browse" -> goto(BrowsePersonas)
+                    "custom" -> goto(DescribeCase())
+                    "exit"   -> { furhat.say("Okay, goodbye then."); goto(Idle) }
+                    else     -> furhat.ask("Would you like to try another case, or go straight to a specific one?")
                 }
             }
         }
