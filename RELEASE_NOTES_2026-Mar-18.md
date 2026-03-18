@@ -40,15 +40,25 @@ Generated personas are now matched to face and voice by age, gender, and cultura
 Voice is set to match the face name exactly. Previously, custom cases used hardcoded voices that did not correspond to any real ElevenLabs profile.
 
 ## Intent Recognition
-Exit keyword matching has been tightened — generic single words like "stop", "end", "done", and "finish" have been removed from the exit keyword list. These were falsely triggering exit when users described a patient scenario (e.g. "a child who stopped talking"). Exit now requires explicit phrases.
+Each navigation state now runs a two-tier intent pipeline:
 
-LLM fallback has been added to all five navigation states so intent is understood from meaning throughout the full conversation flow, not just from keyword matching.
+1. **Keyword matching** — fast, no API call. Checked first for common phrases.
+2. **LLM classification** — Gemini classifies meaning when no keyword matches.
+
+States and what runs in each:
+
+| State | Keywords checked | LLM fallback labels |
+|---|---|---|
+| InitialInteraction | yes / no / confused / exit | yes, no, unclear |
+| ChooseMode | browse / custom / exit / help | browse, custom, direct_description, exit, unclear |
+| BrowsePersonas | persona name / next / back / custom / exit / help | select:\<name\>, next, back, custom, exit, help, unclear |
+| DescribeCase | back / skip / browse / exit / help | vague, description, browse, back, exit |
+| AfterChat | persona name / yes / no / browse / custom / exit / help | yes, no, browse, custom, exit, unclear |
+
+Exit keyword matching has also been tightened — generic single words like "stop", "end", "done", and "finish" have been removed. These were falsely triggering exit when users described a patient scenario (e.g. "a child who stopped talking").
 
 ## Emotional Tone
 All seven pre-made personas now speak with a condition-appropriate emotional tone. Custom-generated personas receive the same instruction automatically.
 
 ## BrowsePersonas — Asha Replaces Dmitri
 Asha (15-year-old Indian girl with perfectionism and anxiety) now appears in the browseable case list. Dmitri remains accessible by name.
-
-## Emmi — Behaviour Updated
-Emmi gives short, hesitant answers at the start and opens up gradually with warm questioning. Stage directions are blocked and will never be spoken aloud.
