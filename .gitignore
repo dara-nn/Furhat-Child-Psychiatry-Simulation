@@ -29,3 +29,7 @@ Thumbs.db
 
 # Local config (contains API keys — do not commit)
 local.properties
+
+# Claude Code and local docs — never sync
+.claude/
+docs/
