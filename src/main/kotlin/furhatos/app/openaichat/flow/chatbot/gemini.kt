@@ -181,16 +181,20 @@ private fun extractGeminiText(jsonResponse: String): String? {
 private fun buildMetaPrompt(userDescription: String): String = """
 You are helping design a fictional child or adolescent patient character for a child psychiatry training simulation.
 This is an educational tool used by psychiatry students to practise clinical interview skills.
+All content is fictional and used solely for clinical training purposes.
 A trainee described their learning goal as: "${escapeForJson(userDescription)}"
 
-Respond ONLY with a JSON object (no markdown, no extra text) with these exact fields:
+IMPORTANT: Respond ONLY with a raw JSON object. No markdown, no code fences, no extra text before or after.
+Do NOT use double-quote characters inside any JSON string value — use single quotes or rephrase instead.
+JSON object with these exact fields:
 {
   "name": "<first name>",
   "age": <integer 6-17>,
   "gender": "<male|female|neutral>",
+  "background": "<finnish|european|eastern_eu|latin|middle_eastern|asian|african>",
   "condition": "<short psychiatric diagnostic label, e.g. ADHD, depression, anxiety, ODD, autism>",
   "difficulty": "<easy|medium|hard>",
-  "intro": "<opening line the character says when greeted — 1 short sentence, in character, age-appropriate>",
+  "intro": "<MAXIMUM 4 WORDS. The literal words the child says first — e.g. 'Hi.', 'Um... hi.', 'Hello.', 'Mm.' No stage directions, no actions, no symptoms, no personality. Just the greeting itself.>",
   "desc": "<short description, e.g. '14-year-old boy with ADHD'>",
   "systemPrompt": "<character brief — follow the structure and rules below>"
 }
@@ -199,11 +203,13 @@ Structure for the systemPrompt field (use these exact section headings):
 You are [name], a [age]-year-old [gender] with [condition]. [1-sentence backstory]. This is a [difficulty] difficulty case.
 Personality and communication style:
 - [3-4 bullet points: how they speak, their attitude, openness level, typical responses]
+- Include one bullet describing the emotional tone of their voice — appropriate to their condition (e.g. flat and empty for depression, quietly sad for anxiety, tearful for separation anxiety, hollow underneath for masked emotions).
 Symptoms and backstory:
 - [3-4 bullet points: specific symptoms, what brought them in, what their life looks like]
 Rules:
 - Keep responses to a maximum of four sentences.
 - Never break character or mention that you are an AI.
+- NEVER include action descriptions, stage directions, or asterisk text. Only speak words.
 - [1-2 case-specific rules, e.g. difficulty opening up, deflecting certain topics]
 """.trimIndent()
 
@@ -265,30 +271,50 @@ fun parsePersonaJson(json: String): PersonaGenerationResult {
 
     return try {
         val name = extractStringField(cleaned, "name").ifBlank {
-            println("parsePersonaJson: name field blank — cleaned = $cleaned")
+            println("parsePersonaJson: name field blank — full cleaned JSON = $cleaned")
             return GenerationFailed
         }
         val age        = extractIntField(cleaned, "age").takeIf { it in 6..17 } ?: 12
         val genderStr  = extractStringField(cleaned, "gender").lowercase()
+        val background = extractStringField(cleaned, "background").lowercase().trim()
         val intro      = extractStringField(cleaned, "intro")
         val desc       = extractStringField(cleaned, "desc").ifBlank { "$age year old patient" }
         val systemPr   = extractStringField(cleaned, "systemPrompt").ifBlank { "You are $name, $desc." }
 
-        // Voice + face mapping
-        val (voice, face, mask) = when {
-            genderStr == "female" ->
-                Triple(ElevenlabsVoice("Ash - Conversational, Kind and Bright", Gender.FEMALE, Language.MULTILINGUAL),
-                       listOf("Billy"), "child")
-            genderStr == "male" && age <= 14 ->
-                Triple(ElevenlabsVoice("LauriVoiceV1", Gender.NEUTRAL, Language.MULTILINGUAL),
-                       listOf("Devan"), "child")
-            genderStr == "male" ->
-                Triple(ElevenlabsVoice("Leo Moreno - Intentional and Natural", Gender.MALE, Language.MULTILINGUAL),
-                       listOf("Devan"), "child")
-            else ->
-                Triple(ElevenlabsVoice("Liza - Pleasant, Smooth and Subdued", Gender.FEMALE, Language.MULTILINGUAL),
-                       listOf("Billy"), "child")
+        // ── 1. Determine (faceName, mask) ────────────────────────────────────
+        val (faceName, mask) = when {
+            genderStr == "female" && age >= 12 -> when (background) {
+                "finnish"                  -> "Finnish teen girl"       to "adult"
+                "eastern_eu"               -> "Eastern EU teen girl"    to "adult"
+                "latin"                    -> "Latin teen girl"         to "adult"
+                "middle_eastern", "indian" -> "Middle east teen girl"   to "adult"
+                "asian"                    -> "Asian teen girl"         to "adult"
+                "african"                  -> "Black teen girl"          to "adult"
+                else                       -> "White teen girl"         to "adult"
+            }
+            genderStr == "female"            -> "Child girl"            to "child"
+            genderStr == "male" && age >= 12 -> when (background) {
+                "finnish"                  -> "Finnish teen boy"        to "adult"
+                "eastern_eu"               -> "Eastern EU teen boy"     to "adult"
+                "latin"                    -> "Latin teen boy"          to "adult"
+                "middle_eastern", "indian" -> "Middle east teen boy"    to "adult"
+                "asian"                    -> "Asian teen boy"          to "adult"
+                "african"                  -> "Black teen boy"           to "adult"
+                else                       -> "White teen boy"          to "adult"
+            }
+            genderStr == "male"              -> "Child boy"             to "child"
+            age >= 12                        -> "White teen girl"       to "adult"
+            else                             -> "Child girl"            to "child"
         }
+
+        // ── 2. Derive voice from face name (ElevenLabs profile = face name) ─
+        val voiceGender = when {
+            faceName.contains("girl") -> Gender.FEMALE
+            faceName.contains("boy")  -> Gender.MALE
+            else                      -> Gender.NEUTRAL
+        }
+        val voice = ElevenlabsVoice(faceName, voiceGender, Language.MULTILINGUAL)
+        val face  = listOf(faceName)
 
         val persona = Persona(
             name        = name,
@@ -312,7 +338,7 @@ fun generatePersonaFromDescription(userDescription: String): PersonaGenerationRe
     return try {
         val prompt = buildMetaPrompt(userDescription)
         val escapedPrompt = escapeForJson(prompt)
-        val requestBody = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}],"generationConfig":{"temperature":0.9,"maxOutputTokens":1024}}"""
+        val requestBody = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}],"generationConfig":{"temperature":0.9,"maxOutputTokens":4096}}"""
         println("generatePersona: sending request (body length=${requestBody.length})")
 
         val connection = java.net.URL(apiUrl).openConnection() as java.net.HttpURLConnection
@@ -329,15 +355,30 @@ fun generatePersonaFromDescription(userDescription: String): PersonaGenerationRe
         if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
             val raw = connection.inputStream.bufferedReader().readText()
             println("generatePersona: raw = $raw")
+
+            // Detect safety/quota blocks — these have no "text" in candidates
+            val finishReasonIdx = raw.indexOf("\"finishReason\"")
+            if (finishReasonIdx != -1) {
+                val colonIdx = raw.indexOf(':', finishReasonIdx)
+                val valStart = raw.indexOf('"', colonIdx + 1) + 1
+                val valEnd   = raw.indexOf('"', valStart)
+                val finishReason = raw.substring(valStart, valEnd)
+                println("generatePersona: finishReason = $finishReason")
+                if (finishReason != "STOP") {
+                    println("generatePersona: non-STOP finish reason — treating as GenerationFailed")
+                    return GenerationFailed
+                }
+            }
+
             val text = extractGeminiText(raw) ?: run {
-                println("generatePersona: extractGeminiText returned null")
+                println("generatePersona: extractGeminiText returned null — raw snippet = ${raw.take(500)}")
                 return GenerationFailed
             }
             println("generatePersona: extracted text = $text")
             parsePersonaJson(text)
         } else {
             val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "no error body"
-            println("generatePersona: error body = $errorBody")
+            println("generatePersona: HTTP error $responseCode — body = $errorBody")
             GenerationFailed
         }
     } catch (e: Exception) {

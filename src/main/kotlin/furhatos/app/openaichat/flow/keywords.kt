@@ -33,10 +33,8 @@ val helpKeywords = listOf(
 // Active in all states EXCEPT MainChat. Checked after state-specific keywords.
 
 val exitKeywords = listOf(
-    "stop", "exit", "quit", "i'm done", "i want to stop", "i want to leave",
-    "end", "goodbye", "bye", "that's all", "i'm finished", "done",
-    "i want to go", "i go now", "that is all", "no more", "i leave",
-    "finish", "finished", "stop session"
+    "exit", "I don't want to practice anymore", "stop practice", "i want to stop", "i want to end",
+    "goodbye", "bye", "stop simulation", "end simulation", "stop session"
 )
 
 // ── InitialInteraction ────────────────────────────────────────────────────────
@@ -121,5 +119,19 @@ val stopSessionKeywords = listOf(
     "stop session", "stop the session", "end session", "end the session",
     "i want to stop the session", "stop this session", "finish session",
     "finish the session", "i want to end", "i want to stop this",
-    "session stop", "session end"
+    "session stop", "session end",
+    "exit", "exit session", "stop section", "stop training", "end training",
+    "let's stop", "lets stop", "i want to stop"
 )
+
+// ── MainChat: minimal acknowledgements ────────────────────────────────────────
+// Exact-match only (full utterance) — patient stays silent instead of responding.
+
+val minimalInputKeywords = listOf(
+    "hmm", "hm", "mm", "mmm", "mhm", "uh huh", "uh-huh",
+    "okay", "ok", "i see", "right", "yes", "no", "yeah", "yep",
+    "and", "so"
+)
+
+fun String.isMinimalInput(): Boolean =
+    minimalInputKeywords.any { normalizeForKeyword() == it.normalizeForKeyword() }
