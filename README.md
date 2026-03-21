@@ -1,92 +1,122 @@
 # Furhat Child Psychiatry Simulation
 
-A FurhatOS skill for training child psychiatry interview skills. The robot simulates AI-powered child patients with distinct psychological profiles, allowing clinicians to practise clinical interviews in a safe, repeatable environment.
+A FurhatOS skill designed for training child and adolescent psychiatry interview skills. This robotic simulation provides lifelike AI-powered pediatric patients with distinct psychological profiles, allowing clinicians and medical students to practise clinical interviews in a safe, repeatable, and realistic environment.
 
-## Pre-Made Cases
+## 🚀 Features
 
-| Name | Age / Background | Condition | Difficulty |
+- **Pre-Made Clinical Cases:** The system comes with 7 built-in, ready-to-use patient personas with varied clinical presentations (e.g., social anxiety, depression, perfectionism) and difficulties.
+- **Dynamic Case Generation:** Clinicians can also describe any custom patient profile (e.g., "15-year-old boy struggling with ADHD and school refusal"). The system leverages Google Gemini to generate a complete persona on the fly—including name, backstory, clinical symptoms, personality traits, and a custom system prompt.
+- **Hybrid Intent Matching:** Navigates conversation states using a fast, two-tier pipeline:
+  1. Low-latency keyword matching for standard commands (e.g., "stop session", "yes/no").
+  2. LLM-based intent classification via Gemini when complex user utterances don't match simple keywords.
+
+## 🧠 Pre-Made Clinical Cases
+
+The simulation comes with several built-in personas, each configured to speak with a condition-appropriate emotional tone.
+
+| Name | Demographics | Clinical Presentation | Difficulty |
 |---|---|---|---|
-| Helmi | 12F, Finnish | Social anxiety | Easy |
-| Lauri | 14M, Finnish | Depression | Medium |
-| Emmi | 8F, Finnish | Separation anxiety | Easy |
-| Mei | 10F, Chinese | Generalized anxiety | Medium |
-| Asha | 15F, Indian | Perfectionism and anxiety | Medium |
-| Carlos | 17M, Mexican | Masked depression | Hard |
-| Dmitri | 16M, Russian | Irritable depression | Hard |
+| **Helmi** | 12F, Finnish | Social anxiety | Easy |
+| **Lauri** | 14M, Finnish | Depression | Medium |
+| **Emmi** | 8F, Finnish | Separation anxiety | Easy |
+| **Mei** | 10F, Chinese | Generalized anxiety | Medium |
+| **Asha** | 15F, Indian | Perfectionism and anxiety | Medium |
+| **Carlos** | 17M, Mexican | Masked depression | Hard |
+| **Dmitri** | 16M, Russian | Irritable depression | Hard |
 
-All personas speak with a condition-appropriate emotional tone and never break character.
+## ✨ Custom Case Generation & Asset Mapping
 
-## Custom Case Generation
+When a custom case is generated, the system intelligently parses the demographics and automatically pairs the LLM persona with physical robot traits:
+- **Masks:** Children under 12 receive the physical "child" Furhat mask, while patients 12 and older use the "adult" mask for a teenage appearance.
+- **Faces/Textures:** Demographics (gender and cultural background) are mapped to the closest matching Furhat face texture (e.g., "Asian teen girl" or "White teen boy").
+- **Voices:** The selected demographic assigns an appropriate ElevenLabs text-to-speech voice model that conveys a condition-appropriate emotional tone (e.g., flat and empty for depression).
 
-Clinicians can describe any patient they want to practise with. The robot uses Gemini to generate a full persona on the fly — including name, backstory, symptoms, personality, and a system prompt — matched to a face and voice by age, gender, and cultural background.
+## 🔄 Conversation Flow
 
-## How It Works
+The simulation follows a structured state machine flow to guide users from setup to the clinical interview.
 
-Each navigation state uses a two-tier intent pipeline:
-1. **Keyword matching** — fast, no API call, checked first
-2. **LLM classification** — Gemini classifies meaning when no keyword matches
+```mermaid
+graph TD
+    A[Idle] -->|"User enters scene"| B(InitialInteraction)
+    B -->|"Yes"| C(ChooseMode)
+    B -->|"No"| A
+    C -->|"Browse Ready-Made"| D(BrowsePersonas)
+    C -->|"Create Custom"| E(DescribeCase)
+    D -->|"Selects Persona"| F(MainChat)
+    E -->|"Provides Description\n(Gemini Generates Persona)"| F
+    F <-->|"Clinical Interview\n(Gemini Chatbot)"| F
+    F -->|"Stop Session"| G(AfterChat)
+    G -->|"Yes (Another Case)"| C
+    G -->|"No (Done)"| A
+```
 
-## Requirements
+## 🛠️ Prerequisites
 
-- Furhat robot running FurhatOS
-- Gemini API key — get one at [aistudio.google.com](https://aistudio.google.com/app/apikey)
-- JDK 15 (set `org.gradle.java.home` in `gradle.properties`)
-- Gradle
+- **Hardware/Software:** Furhat robot or the local FurhatOS simulator
+- **API Keys:** 
+  - [Google Gemini API Key](https://aistudio.google.com/app/apikey) for LLM generation/classification
+  - [ElevenLabs API Key](https://elevenlabs.io/) for high-quality TTS voices
+- **Environment:** 
+  - JDK 15 (set `org.gradle.java.home` in your `gradle.properties`)
+  - Python 3.x for running the test suite
 
-## Setup
+## ⚙️ Setup and Installation
 
-1. **Clone the repo**
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/dara-nn/Furhat-Child-Psychiatry-Simulation.git
    cd Furhat-Child-Psychiatry-Simulation
    ```
 
-2. **Add your Gemini API key**
-   ```bash
-   cp local.properties.example local.properties
-   # Edit local.properties and paste your key
+2. **Configure API Keys:**
+   Create a `local.properties` file in the project root:
+   ```properties
+   gemini.api.key=YOUR_GEMINI_KEY
    ```
 
-3. **Set your local JDK path** (create `gradle.properties` in the project root)
+3. **Set your local JDK path:**
+   Create or edit `gradle.properties` in the project root:
    ```properties
    org.gradle.java.home=/path/to/your/jdk-15
    ```
 
-4. **Build**
+4. **Build the Skill:**
    ```bash
    ./gradlew shadowJar
    ```
-   This produces `OpenAIChat_1.1.0.skill` in `build/libs/`.
+   This compiles the project and produces a `.skill` file (e.g., `OpenAIChat_1.1.0.skill`) in `build/libs/`.
 
-5. **Deploy to Furhat**
-   Upload the `.skill` file via the Furhat dashboard and launch it.
+5. **Deploy:**
+   Upload the compiled `.skill` file via the Furhat web dashboard and launch it.
 
-6. **Automated Testing**
-   This project now includes an "Automated Test Agent". This allows you to test your simulated interviews without manual speech.
-   
-   - **Run full test suite**:
-     ```bash
-     python3 tests/build_and_test.py
-     ```
-   - **Run individual tests**:
-     - `python3 tests/test_runner.py` (Happy Path: Browse Helmi and chat)
-     - `python3 tests/test_error_paths.py` (Unhappy Path: Tests silence and custom case generation)
-
-## Project Structure
+## 📂 Project Structure
 
 ```
 src/main/kotlin/furhatos/app/openaichat/
 ├── flow/
-│   ├── chatbot/        # Gemini API integration and custom case generation
-│   ├── main/           # Conversation states (greeting, idle, chat)
-│   ├── keywords.kt     # Keyword lists for intent matching
-│   └── parent.kt       # Shared state behaviour
+│   ├── chatbot/        # Gemini LLM integration and dynamic case generation
+│   ├── main/           # Core conversation states (Greeting, Choose Mode, Idle)
+│   ├── keywords.kt     # Hardcoded keyword lists for fast intent matching
+│   └── parent.kt       # Shared state behaviour and background gestures (e.g., gaze aversion)
 └── setting/
-    └── persona.kt      # Persona definitions and face/voice activation
+    └── persona.kt      # Persona data structures and Face/Voice activation logic
+tests/                  # Headless Python test suite
 ```
 
-## Acknowledgements
+## 🧪 Automated Testing
 
-- [FurhatOS](https://furhatrobotics.com/) — robot platform
-- [Google Gemini](https://deepmind.google/technologies/gemini/) — language model
-- [ElevenLabs](https://elevenlabs.io/) — voices
+The project includes a robust headless testing suite that uses system text-to-speech to interact with the Furhat skill locally. This is useful for validating conversational flows after making changes.
+
+- **Run the full test suite (builds and runs all scenarios):**
+  ```bash
+  python3 tests/build_and_test.py
+  ```
+- **Run individual scenarios:**
+  - `python3 tests/test_runner.py` — Runs the "Happy Path" (Browsing cases, talking to Helmi).
+  - `python3 tests/test_error_paths.py` — Runs the "Unhappy Path" (Testing timeouts, handling silence, and generating custom cases).
+
+## 🙏 Acknowledgements
+
+- Built on [FurhatOS](https://furhatrobotics.com/)
+- Powered by [Google Gemini](https://deepmind.google/technologies/gemini/)
+- Voices by [ElevenLabs](https://elevenlabs.io/)
