@@ -3,12 +3,17 @@ import java.util.Properties
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.9.24"
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    application
 }
 
 // Run the Kotlin compiler on JDK 15 to avoid Java 25 version-string parse failures in Kotlin 1.9.x.
 // jvmTarget is explicitly set to 1.8 so the compiled bytecode stays compatible with the Furhat OS JVM.
 kotlin {
     jvmToolchain(15)
+}
+
+application {
+    mainClass.set("furhatos.app.openaichat.MainKt")
 }
 
 java {
@@ -64,7 +69,7 @@ tasks.shadowJar {
 
     manifest {
         attributes(
-            "Main-Class" to "furhatos.app.${project.name.lowercase()}.${project.name.replaceFirstChar { it.uppercase() }}Skill"
+            "Main-Class" to "furhatos.app.openaichat.OpenaichatSkill"
         )
     }
 }

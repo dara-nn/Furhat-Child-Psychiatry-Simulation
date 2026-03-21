@@ -16,7 +16,7 @@ val Init: State = state() {
         send(ResponseConfigElevenlabs.Builder().apiKey(elevenLabsApiKey).buildEvent())
     }
 
-    init {
+    onEntry {
         /** Check API key for the Gemini language model has been set */
         if (geminiServiceKey.isEmpty()) {
             println("Missing API key for Gemini language model.")
@@ -39,5 +39,4 @@ val InitFlow: State = state() {
             !users.hasAny() -> goto(Idle)
         }
     }
-
 }

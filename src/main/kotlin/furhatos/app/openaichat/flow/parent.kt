@@ -21,12 +21,9 @@ val Parent: State = state {
         if (users.count > 0) {
             if (it == users.current) {
                 furhat.attend(users.other)
-                goto(Idle)
             } else {
                 furhat.glance(it)
             }
-        } else {
-            goto(Idle)
         }
     }
 
@@ -47,7 +44,7 @@ val Parent: State = state {
                     val avertTime = 0.2 + (silence.end - silence.start)
                     if (sleepTime > 0.0) {
                         Thread.sleep((sleepTime * 1000.0).toLong())
-                        furhat.gesture(GazeAversion(avertTime, direction))
+                        furhat.gesture(GazeAversion(avertTime, direction), async = true)
                     }
                     last = silence.end
                 }

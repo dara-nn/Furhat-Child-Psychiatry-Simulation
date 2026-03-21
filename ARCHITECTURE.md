@@ -1,6 +1,6 @@
 # Furhat Child Psychiatry Simulation — Architecture & Design Reference
 
-> Analysis of `/Users/Dara/Documents/build.gradle` (local mirror of the Furhat skill codebase)
+> Analysis of `/Users/Dara/Documents/Furhat-psychiatry-simulation` (local mirror of the Furhat skill codebase)
 
 ---
 
