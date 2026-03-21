@@ -284,7 +284,7 @@ fun parsePersonaJson(json: String): PersonaGenerationResult {
         // ── 1. Determine (faceName, mask) ────────────────────────────────────
         val (faceName, mask) = when {
             genderStr == "female" && age >= 12 -> when (background) {
-                "finnish"                  -> "Finnish teen girl"       to "adult"
+                "finnish"                  -> "White teen girl"         to "adult"
                 "eastern_eu"               -> "Eastern EU teen girl"    to "adult"
                 "latin"                    -> "Latin teen girl"         to "adult"
                 "middle_eastern", "indian" -> "Middle east teen girl"   to "adult"
@@ -294,7 +294,7 @@ fun parsePersonaJson(json: String): PersonaGenerationResult {
             }
             genderStr == "female"            -> "Child girl"            to "child"
             genderStr == "male" && age >= 12 -> when (background) {
-                "finnish"                  -> "Finnish teen boy"        to "adult"
+                "finnish"                  -> "White teen boy"          to "adult"
                 "eastern_eu"               -> "Eastern EU teen boy"     to "adult"
                 "latin"                    -> "Latin teen boy"          to "adult"
                 "middle_eastern", "indian" -> "Middle east teen boy"    to "adult"

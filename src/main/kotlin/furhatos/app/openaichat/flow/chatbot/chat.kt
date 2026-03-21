@@ -32,6 +32,7 @@ val MainChat = state(Parent) {
     }
 
     onReentry {
+        println(">>> ROBOT_LISTENING: MAIN_CHAT")
         furhat.listen(endSil = 5000, maxSpeech = 60000)
     }
 
@@ -78,6 +79,7 @@ val AfterChat: State = state(Parent) {
     onEntry {
         noResponseCount = 0
         lastSilencePhrase = ""
+        println(">>> ROBOT_LISTENING: AFTER_CHAT")
         furhat.ask("Would you like to talk to someone else?")
     }
 
@@ -118,7 +120,7 @@ val AfterChat: State = state(Parent) {
                     "browse" -> goto(BrowsePersonas)
                     "custom" -> goto(DescribeCase())
                     "exit"   -> { furhat.say("Okay, goodbye then."); goto(Idle) }
-                    else     -> furhat.ask("Would you like to try another case, or go straight to a specific one?")
+                    else     -> { println(">>> ROBOT_LISTENING: AFTER_CHAT"); furhat.ask("Would you like to try another case, or go straight to a specific one?") }
                 }
             }
         }
@@ -129,6 +131,7 @@ val AfterChat: State = state(Parent) {
         if (noResponseCount < 3) {
             val phrase = pickSilencePhrase(silencePhrases, lastSilencePhrase)
             lastSilencePhrase = phrase
+            println(">>> ROBOT_LISTENING: AFTER_CHAT")
             furhat.ask(phrase)
         } else {
             furhat.say("Okay, goodbye then.")

@@ -61,6 +61,17 @@ Each navigation state uses a two-tier intent pipeline:
 5. **Deploy to Furhat**
    Upload the `.skill` file via the Furhat dashboard and launch it.
 
+6. **Automated Testing**
+   This project now includes an "Automated Test Agent". This allows you to test your simulated interviews without manual speech.
+   
+   - **Run full test suite**:
+     ```bash
+     python3 tests/build_and_test.py
+     ```
+   - **Run individual tests**:
+     - `python3 tests/test_runner.py` (Happy Path: Browse Helmi and chat)
+     - `python3 tests/test_error_paths.py` (Unhappy Path: Tests silence and custom case generation)
+
 ## Project Structure
 
 ```

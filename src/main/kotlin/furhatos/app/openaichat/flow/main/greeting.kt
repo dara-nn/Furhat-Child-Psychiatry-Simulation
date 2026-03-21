@@ -88,11 +88,13 @@ val InitialInteraction: State = state(Parent) {
         )
         delay(600)
         furhat.say("Would you like to give it a try?")
+        println(">>> ROBOT_LISTENING: INITIAL_INTERACTION")
         furhat.listen(timeout = 10000, endSil = 5000)
     }
 
     onReentry {
         furhat.say("Would you like to try a practice interview?")
+        println(">>> ROBOT_LISTENING: INITIAL_INTERACTION")
         furhat.listen(timeout = 10000, endSil = 5000)
     }
 
@@ -137,7 +139,7 @@ val InitialInteraction: State = state(Parent) {
                 when (label) {
                     "yes" -> goto(ChooseMode())
                     "no"  -> { furhat.say("Okay, no worries. I'll be here if you change your mind."); goto(Idle) }
-                    else  -> { furhat.say("Sorry, I didn't quite get that. Would you like to try a practice interview?"); furhat.listen(timeout = 10000, endSil = 5000) }
+                    else  -> { furhat.say("Sorry, I didn't quite get that. Would you like to try a practice interview?"); println(">>> ROBOT_LISTENING: INITIAL_INTERACTION"); furhat.listen(timeout = 10000, endSil = 5000) }
                 }
             }
         }
@@ -147,6 +149,7 @@ val InitialInteraction: State = state(Parent) {
         val phrase = pickSilencePhrase(silencePhrases, lastInitialInteractionSilence)
         lastInitialInteractionSilence = phrase
         furhat.say(phrase)
+        println(">>> ROBOT_LISTENING: INITIAL_INTERACTION")
         furhat.listen(timeout = 10000, endSil = 5000)
     }
 }
@@ -176,11 +179,13 @@ fun ChooseMode(skipIntro: Boolean = false): State = state(Parent) {
         } else {
             furhat.say("Would you like to browse the ready-made cases, or create a custom case?")
         }
+        println(">>> ROBOT_LISTENING: CHOOSE_MODE")
         furhat.listen(timeout = 10000, endSil = 5000)
     }
 
     onReentry {
         furhat.say("Want to look through the available cases, or, create one yourself?")
+        println(">>> ROBOT_LISTENING: CHOOSE_MODE")
         furhat.listen(timeout = 10000, endSil = 5000)
     }
 
@@ -213,7 +218,7 @@ fun ChooseMode(skipIntro: Boolean = false): State = state(Parent) {
                         goto(DescribeCase(prefilled = description))
                     }
                     label == "exit"                          -> { furhat.say("Okay, goodbye."); goto(Idle) }
-                    else -> { furhat.say("Would you like to browse the ready-made cases, or create a custom case?"); furhat.listen(timeout = 10000, endSil = 5000) }
+                    else -> { furhat.say("Would you like to browse the ready-made cases, or create a custom case?"); println(">>> ROBOT_LISTENING: CHOOSE_MODE"); furhat.listen(timeout = 10000, endSil = 5000) }
                 }
             }
         }
@@ -225,6 +230,7 @@ fun ChooseMode(skipIntro: Boolean = false): State = state(Parent) {
             val phrase = pickSilencePhrase(silencePhrases, lastChooseModeSilence)
             lastChooseModeSilence = phrase
             furhat.say(phrase)
+            println(">>> ROBOT_LISTENING: CHOOSE_MODE")
             furhat.listen(timeout = 10000, endSil = 5000)
         } else {
             furhat.say("I'll go quiet for now. Just say something whenever you're ready to start.")
@@ -326,6 +332,7 @@ Respond with ONLY the label.
         }
         lastPrompt = cue
         furhat.say(cue)
+        println(">>> ROBOT_LISTENING: BROWSE_PERSONAS")
         furhat.listen(timeout = 10000, endSil = 5000)
     }
 
@@ -338,6 +345,7 @@ Respond with ONLY the label.
                      else        "Which one? $names. Or say — more —."
         lastPrompt = prompt
         furhat.say(prompt)
+        println(">>> ROBOT_LISTENING: BROWSE_PERSONAS")
         furhat.listen(timeout = 10000, endSil = 5000)
     }
 
@@ -352,6 +360,7 @@ Respond with ONLY the label.
             val phrase = pickSilencePhrase(phrases, lastSilencePhrase)
             lastSilencePhrase = phrase
             furhat.say(phrase)
+            println(">>> ROBOT_LISTENING: BROWSE_PERSONAS")
             furhat.listen(timeout = 10000, endSil = 5000)
         } else {
             furhat.say("I'll go quiet for now. Just say something whenever you're ready to start.")
@@ -402,8 +411,8 @@ Respond with ONLY the label.
                                 val matches   = findPersona(nameGuess)
                                 when (matches.size) {
                                     1    -> startPersona(matches.first())
-                                    0    -> { val names = chunk.joinToString(", ") { it.name }; furhat.say("I didn't catch that. These cases are $names."); furhat.listen(timeout = 10000, endSil = 5000) }
-                                    else -> { furhat.say("Did you mean ${matches[0].name} or ${matches[1].name}?"); furhat.listen(timeout = 10000, endSil = 5000) }
+                                    0    -> { val names = chunk.joinToString(", ") { it.name }; furhat.say("I didn't catch that. These cases are $names."); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 5000) }
+                                    else -> { furhat.say("Did you mean ${matches[0].name} or ${matches[1].name}?"); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 5000) }
                                 }
                             }
                             label == "next" -> {
@@ -417,7 +426,7 @@ Respond with ONLY the label.
                             label == "custom" -> goto(DescribeCase())
                             label == "exit"   -> { furhat.say("Okay, goodbye then."); goto(Idle) }
                             label == "help"   -> { furhat.say("Say a name to pick a case, 'more' for more, or 'back' to go back."); reentry() }
-                            else -> { val names = chunk.joinToString(", ") { it.name }; furhat.say("I didn't catch that. These cases are $names."); furhat.listen(timeout = 10000, endSil = 5000) }
+                            else -> { val names = chunk.joinToString(", ") { it.name }; furhat.say("I didn't catch that. These cases are $names."); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 5000) }
                         }
                     }
                 }
@@ -452,8 +461,8 @@ fun DescribeCase(
                 println("DescribeCase.onEntry: result=$result")
                 handleGenerationResult(result, attempt = 1, description = prefilled)
             }
-            attempt == 1 -> { furhat.say(mainPrompt); furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000) }
-            else         -> furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000)   // attempt 2: clarification question already said
+            attempt == 1 -> { furhat.say(mainPrompt); println(">>> ROBOT_LISTENING: DESCRIBE_CASE"); furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000) }
+            else         -> { println(">>> ROBOT_LISTENING: DESCRIBE_CASE"); furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000) }   // attempt 2: clarification question already said
         }
     }
 
@@ -481,6 +490,7 @@ fun DescribeCase(
                         "Could you tell me a bit more? For example: a withdrawn child who won't answer questions, " +
                         "or a teenager with a difficult home situation."
                     )
+                    println(">>> ROBOT_LISTENING: DESCRIBE_CASE")
                     furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000)
                 } else {
                     // LLM tier — full intent classifier for anything not caught by keywords
@@ -498,6 +508,7 @@ fun DescribeCase(
                                 "No problem — it can be anything. A type of situation, something you find tricky, " +
                                 "a kind of patient. Whatever comes to mind."
                             )
+                            println(">>> ROBOT_LISTENING: DESCRIBE_CASE")
                             furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000)
                         }
                         "browse" -> { furhat.say("Sure."); goto(BrowsePersonas) }
