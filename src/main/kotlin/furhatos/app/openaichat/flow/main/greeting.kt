@@ -12,6 +12,7 @@ import furhatos.app.openaichat.setting.Persona
 import furhatos.app.openaichat.setting.hostPersona
 import furhatos.app.openaichat.setting.personas
 import furhatos.flow.kotlin.*
+import furhatos.gestures.Gestures
 import furhatos.nlu.common.*
 
 var currentPersona: Persona = hostPersona
@@ -80,6 +81,7 @@ val InitialInteraction: State = state(Parent) {
     )
 
     onEntry {
+        furhat.attend(users.random)
         furhat.say("Hi there! I'm a training assistant for child psychiatry.")
         delay(600)
         furhat.say(
@@ -89,28 +91,30 @@ val InitialInteraction: State = state(Parent) {
         delay(600)
         furhat.say("Would you like to give it a try?")
         println(">>> ROBOT_LISTENING: INITIAL_INTERACTION")
-        furhat.listen(timeout = 10000, endSil = 5000)
+        furhat.listen(timeout = 10000, endSil = 2000)
     }
 
     onReentry {
         furhat.say("Would you like to try a practice interview?")
         println(">>> ROBOT_LISTENING: INITIAL_INTERACTION")
-        furhat.listen(timeout = 10000, endSil = 5000)
+        furhat.listen(timeout = 10000, endSil = 2000)
     }
 
-    onResponse<Yes> { goto(ChooseMode()) }
-    onResponse<No>  { furhat.say("Okay, no worries. I'll be here if you change your mind."); goto(Idle) }
+    onResponse<Yes> { hostAckYes(); goto(ChooseMode()) }
+    onResponse<No>  { hostAckNo(); furhat.say("Okay, no worries. I'll be here if you change your mind."); goto(Idle) }
 
     onResponse {
         val text = it.text
         when {
             // State-specific keywords checked first
-            text.matchesKeyword(startYesKeywords)  -> goto(ChooseMode())
+            text.matchesKeyword(startYesKeywords)  -> { hostAck(text); goto(ChooseMode()) }
             text.matchesKeyword(startNoKeywords)   -> {
+                hostAck(text)
                 furhat.say("Okay, no worries. I'll be here if you change your mind.")
                 goto(Idle)
             }
             text.matchesKeyword(confusedKeywords)  -> {
+                hostAck(text)
                 furhat.say(
                     "I'm a practice tool — I play child patients so you can rehearse interviews. " +
                     "Want to try?"
@@ -118,8 +122,9 @@ val InitialInteraction: State = state(Parent) {
                 reentry()
             }
             // Global keywords
-            text.matchesKeyword(exitKeywords)      -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(exitKeywords)      -> { hostAck(text); furhat.say("Okay, goodbye."); goto(Idle) }
             text.matchesKeyword(helpKeywords)      -> {
+                hostAck(text)
                 furhat.say(
                     "I'm a training robot. I can pretend to be a child patient so you can " +
                     "practise your clinical interview skills. Let me know if you'd like to get started."
@@ -128,6 +133,7 @@ val InitialInteraction: State = state(Parent) {
             }
             // LLM fallback — context-aware classification for natural phrasing
             else -> {
+                hostError()
                 furhat.say("Hmm…")
                 val label = call {
                     classifyIntent(
@@ -139,7 +145,7 @@ val InitialInteraction: State = state(Parent) {
                 when (label) {
                     "yes" -> goto(ChooseMode())
                     "no"  -> { furhat.say("Okay, no worries. I'll be here if you change your mind."); goto(Idle) }
-                    else  -> { furhat.say("Sorry, I didn't quite get that. Would you like to try a practice interview?"); println(">>> ROBOT_LISTENING: INITIAL_INTERACTION"); furhat.listen(timeout = 10000, endSil = 5000) }
+                    else  -> { hostError(); furhat.say("Sorry, I didn't quite get that. Would you like to try a practice interview?"); println(">>> ROBOT_LISTENING: INITIAL_INTERACTION"); furhat.listen(timeout = 10000, endSil = 2000) }
                 }
             }
         }
@@ -150,7 +156,7 @@ val InitialInteraction: State = state(Parent) {
         lastInitialInteractionSilence = phrase
         furhat.say(phrase)
         println(">>> ROBOT_LISTENING: INITIAL_INTERACTION")
-        furhat.listen(timeout = 10000, endSil = 5000)
+        furhat.listen(timeout = 10000, endSil = 2000)
     }
 }
 
@@ -180,28 +186,29 @@ fun ChooseMode(skipIntro: Boolean = false): State = state(Parent) {
             furhat.say("Would you like to browse the ready-made cases, or create a custom case?")
         }
         println(">>> ROBOT_LISTENING: CHOOSE_MODE")
-        furhat.listen(timeout = 10000, endSil = 5000)
+        furhat.listen(timeout = 10000, endSil = 2000)
     }
 
     onReentry {
         furhat.say("Want to look through the available cases, or, create one yourself?")
         println(">>> ROBOT_LISTENING: CHOOSE_MODE")
-        furhat.listen(timeout = 10000, endSil = 5000)
+        furhat.listen(timeout = 10000, endSil = 2000)
     }
 
     onResponse {
         val text = it.text
         when {
             // State-specific keyword tiers (fast, no LLM)
-            text.matchesKeyword(listCasesKeywords)      -> goto(BrowsePersonas)
-            text.matchesKeyword(switchToCustomKeywords) -> goto(DescribeCase())
+            text.matchesKeyword(listCasesKeywords)      -> { hostAck(text); goto(BrowsePersonas) }
+            text.matchesKeyword(switchToCustomKeywords) -> { hostAck(text); goto(DescribeCase()) }
             // Global keywords
-            text.matchesKeyword(exitKeywords)           -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(exitKeywords)           -> { hostAck(text); furhat.say("Okay, goodbye."); goto(Idle) }
             text.matchesKeyword(helpKeywords) || text.matchesKeyword(confusedKeywords) -> {
-                reentry()
+                hostAck(text); reentry()
             }
             // LLM — full intent classifier for anything not caught by keywords
             else -> {
+                hostError()
                 furhat.say("Hmm…")
                 val label = call {
                     classifyIntent(
@@ -218,7 +225,7 @@ fun ChooseMode(skipIntro: Boolean = false): State = state(Parent) {
                         goto(DescribeCase(prefilled = description))
                     }
                     label == "exit"                          -> { furhat.say("Okay, goodbye."); goto(Idle) }
-                    else -> { furhat.say("Would you like to browse the ready-made cases, or create a custom case?"); println(">>> ROBOT_LISTENING: CHOOSE_MODE"); furhat.listen(timeout = 10000, endSil = 5000) }
+                    else -> { furhat.say("Would you like to browse the ready-made cases, or create a custom case?"); println(">>> ROBOT_LISTENING: CHOOSE_MODE"); furhat.listen(timeout = 10000, endSil = 2000) }
                 }
             }
         }
@@ -231,7 +238,7 @@ fun ChooseMode(skipIntro: Boolean = false): State = state(Parent) {
             lastChooseModeSilence = phrase
             furhat.say(phrase)
             println(">>> ROBOT_LISTENING: CHOOSE_MODE")
-            furhat.listen(timeout = 10000, endSil = 5000)
+            furhat.listen(timeout = 10000, endSil = 2000)
         } else {
             furhat.say("I'll go quiet for now. Just say something whenever you're ready to start.")
             goto(Idle)
@@ -333,7 +340,7 @@ Respond with ONLY the label.
         lastPrompt = cue
         furhat.say(cue)
         println(">>> ROBOT_LISTENING: BROWSE_PERSONAS")
-        furhat.listen(timeout = 10000, endSil = 5000)
+        furhat.listen(timeout = 10000, endSil = 2000)
     }
 
     onReentry {
@@ -346,7 +353,7 @@ Respond with ONLY the label.
         lastPrompt = prompt
         furhat.say(prompt)
         println(">>> ROBOT_LISTENING: BROWSE_PERSONAS")
-        furhat.listen(timeout = 10000, endSil = 5000)
+        furhat.listen(timeout = 10000, endSil = 2000)
     }
 
     onNoResponse {
@@ -361,7 +368,7 @@ Respond with ONLY the label.
             lastSilencePhrase = phrase
             furhat.say(phrase)
             println(">>> ROBOT_LISTENING: BROWSE_PERSONAS")
-            furhat.listen(timeout = 10000, endSil = 5000)
+            furhat.listen(timeout = 10000, endSil = 2000)
         } else {
             furhat.say("I'll go quiet for now. Just say something whenever you're ready to start.")
             goto(Idle)
@@ -371,8 +378,9 @@ Respond with ONLY the label.
     onResponse {
         val text = it.text
         when {
-            text.matchesKeyword(confusedKeywords)   -> goto(BrowsePersonas)
+            text.matchesKeyword(confusedKeywords)   -> { hostAck(text); goto(BrowsePersonas) }
             text.matchesKeyword(nextPageKeywords) -> {
+                hostAck(text)
                 val isLast = (currentPersonaPage + 1) * chunkSize >= visiblePersonas.size
                 if (isLast) {
                     furhat.say("Those are all the patient cases. Starting again from the beginning.")
@@ -383,6 +391,7 @@ Respond with ONLY the label.
                 goto(BrowsePersonas)
             }
             text.matchesKeyword(goBackKeywords) -> {
+                hostAck(text)
                 if (currentPersonaPage > 0) {
                     currentPersonaPage--
                     goto(BrowsePersonas)
@@ -390,9 +399,10 @@ Respond with ONLY the label.
                     goto(ChooseMode(skipIntro = true))
                 }
             }
-            text.matchesKeyword(switchToCustomKeywords) -> goto(DescribeCase())
-            text.matchesKeyword(exitKeywords) || text.matchesKeyword(startNoKeywords) -> { furhat.say("Okay, goodbye then."); goto(Idle) }
+            text.matchesKeyword(switchToCustomKeywords) -> { hostAck(text); goto(DescribeCase()) }
+            text.matchesKeyword(exitKeywords) || text.matchesKeyword(startNoKeywords) -> { hostAck(text); furhat.say("Okay, goodbye then."); goto(Idle) }
             text.matchesKeyword(helpKeywords)           -> {
+                hostAck(text)
                 furhat.say("Say a name to pick a case, 'more' for more, or 'back' to go back.")
                 reentry()
             }
@@ -400,8 +410,9 @@ Respond with ONLY the label.
                 // Try direct name scan across ALL personas first (no LLM, cross-group)
                 val directMatches = findPersonaInText(text)
                 when (directMatches.size) {
-                    1    -> startPersona(directMatches.first())
+                    1    -> { hostAck(text); startPersona(directMatches.first()) }
                     else -> {
+                        hostError()
                         furhat.say("Hmm…")
                         val chunk = visiblePersonas.drop(currentPersonaPage * chunkSize).take(chunkSize)
                         val label = call { callGeminiText(buildClassifyPrompt(lastPrompt, text, chunk)) } as String
@@ -411,8 +422,8 @@ Respond with ONLY the label.
                                 val matches   = findPersona(nameGuess)
                                 when (matches.size) {
                                     1    -> startPersona(matches.first())
-                                    0    -> { val names = chunk.joinToString(", ") { it.name }; furhat.say("I didn't catch that. These cases are $names."); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 5000) }
-                                    else -> { furhat.say("Did you mean ${matches[0].name} or ${matches[1].name}?"); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 5000) }
+                                    0    -> { val names = chunk.joinToString(", ") { it.name }; hostError(); furhat.say("I didn't catch that. These cases are $names."); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 2000) }
+                                    else -> { furhat.say("Did you mean ${matches[0].name} or ${matches[1].name}?"); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 2000) }
                                 }
                             }
                             label == "next" -> {
@@ -426,7 +437,7 @@ Respond with ONLY the label.
                             label == "custom" -> goto(DescribeCase())
                             label == "exit"   -> { furhat.say("Okay, goodbye then."); goto(Idle) }
                             label == "help"   -> { furhat.say("Say a name to pick a case, 'more' for more, or 'back' to go back."); reentry() }
-                            else -> { val names = chunk.joinToString(", ") { it.name }; furhat.say("I didn't catch that. These cases are $names."); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 5000) }
+                            else -> { val names = chunk.joinToString(", ") { it.name }; hostError(); furhat.say("I didn't catch that. These cases are $names."); println(">>> ROBOT_LISTENING: BROWSE_PERSONAS"); furhat.listen(timeout = 10000, endSil = 2000) }
                         }
                     }
                 }
@@ -461,8 +472,8 @@ fun DescribeCase(
                 println("DescribeCase.onEntry: result=$result")
                 handleGenerationResult(result, attempt = 1, description = prefilled)
             }
-            attempt == 1 -> { furhat.say(mainPrompt); println(">>> ROBOT_LISTENING: DESCRIBE_CASE"); furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000) }
-            else         -> { println(">>> ROBOT_LISTENING: DESCRIBE_CASE"); furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000) }   // attempt 2: clarification question already said
+            attempt == 1 -> { furhat.say(mainPrompt); println(">>> ROBOT_LISTENING: DESCRIBE_CASE"); furhat.listen(timeout = 20000, endSil = 4000, maxSpeech = 60000) }
+            else         -> { println(">>> ROBOT_LISTENING: DESCRIBE_CASE"); furhat.listen(timeout = 20000, endSil = 4000, maxSpeech = 60000) }   // attempt 2: clarification question already said
         }
     }
 
@@ -471,12 +482,13 @@ fun DescribeCase(
 
         // State-specific keywords — checked first
         when {
-            text.matchesKeyword(goBackKeywords)   -> { furhat.say("No problem."); goto(ChooseMode(skipIntro = true)) }
-            text.matchesKeyword(skipKeywords)     -> { furhat.say("No problem. Let me show you the available cases."); goto(ChooseMode(skipIntro = true)) }
-            text.matchesKeyword(listCasesKeywords) -> { furhat.say("Sure."); goto(BrowsePersonas) }
+            text.matchesKeyword(goBackKeywords)   -> { hostAck(text); furhat.say("No problem."); goto(ChooseMode(skipIntro = true)) }
+            text.matchesKeyword(skipKeywords)     -> { hostAck(text); furhat.say("No problem. Let me show you the available cases."); goto(ChooseMode(skipIntro = true)) }
+            text.matchesKeyword(listCasesKeywords) -> { hostAck(text); furhat.say("Sure."); goto(BrowsePersonas) }
             // Global keywords
-            text.matchesKeyword(exitKeywords)     -> { furhat.say("Okay, goodbye."); goto(Idle) }
+            text.matchesKeyword(exitKeywords)     -> { hostAck(text); furhat.say("Okay, goodbye."); goto(Idle) }
             text.matchesKeyword(helpKeywords)     -> {
+                hostAck(text)
                 furhat.say(
                     "Just tell me what you'd like to practise — anything at all. " +
                     "Or I can show you the pre-made cases instead."
@@ -486,43 +498,21 @@ fun DescribeCase(
             else -> {
                 val wordCount = text.trim().split(Regex("\\s+")).size
                 if (wordCount < 4) {
+                    hostError()
                     furhat.say(
                         "Could you tell me a bit more? For example: a withdrawn child who won't answer questions, " +
                         "or a teenager with a difficult home situation."
                     )
                     println(">>> ROBOT_LISTENING: DESCRIBE_CASE")
-                    furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000)
+                    furhat.listen(timeout = 20000, endSil = 4000, maxSpeech = 60000)
                 } else {
-                    // LLM tier — full intent classifier for anything not caught by keywords
-                    furhat.say("Hmm…")
-                    val label = call {
-                        classifyIntent(
-                            mainPrompt,
-                            text,
-                            "- vague (no condition, symptom, or situation described)\n- description\n- browse (wants to see ready-made cases instead)\n- back (wants to go back to the previous menu)\n- exit (wants to stop or leave)"
-                        )
-                    } as String
-                    when (label) {
-                        "vague"  -> {
-                            furhat.say(
-                                "No problem — it can be anything. A type of situation, something you find tricky, " +
-                                "a kind of patient. Whatever comes to mind."
-                            )
-                            println(">>> ROBOT_LISTENING: DESCRIBE_CASE")
-                            furhat.listen(timeout = 20000, endSil = 5000, maxSpeech = 60000)
-                        }
-                        "browse" -> { furhat.say("Sure."); goto(BrowsePersonas) }
-                        "back"   -> { furhat.say("No problem."); goto(ChooseMode(skipIntro = true)) }
-                        "exit"   -> { furhat.say("Okay, goodbye."); goto(Idle) }
-                        else     -> {
-                            // "description" or "unclear" — treat as description and attempt generation
-                            println("DescribeCase.onResponse: generating from text='$text'")
-                            furhat.say("Let me put together a case for you — one moment.")
-                            val result = call { generatePersonaFromDescription(text) } as PersonaGenerationResult
-                            println("DescribeCase.onResponse: result=$result")
-                            handleGenerationResult(result, attempt, description = text)
-                        }
-                    }
+                    // Treat anything with 4+ words as a description and go straight to generation
+                    hostAck(text)
+                    println("DescribeCase.onResponse: generating from text='$text'")
+                    furhat.say("Let me put together a case for you — one moment.")
+                    val result = call { generatePersonaFromDescription(text) } as PersonaGenerationResult
+                    println("DescribeCase.onResponse: result=$result")
+                    handleGenerationResult(result, attempt, description = text)
                 }
             }
         }
