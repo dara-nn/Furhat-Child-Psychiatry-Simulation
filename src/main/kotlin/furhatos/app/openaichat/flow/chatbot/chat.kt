@@ -33,14 +33,14 @@ val MainChat = state(Parent) {
 
     onReentry {
         println(">>> ROBOT_LISTENING: MAIN_CHAT")
-        furhat.listen(endSil = 5000, maxSpeech = 60000)
+        furhat.listen(endSil = 4000, maxSpeech = 60000)
     }
 
     onResponse {
         val text = it.text
         // ONLY stop_session keywords active — "stop", "bye", "help" etc. go to the persona
         if (text.isMinimalInput()) {
-            furhat.listen(endSil = 5000, maxSpeech = 60000) // patient waits silently — realistic for acknowledgements
+            furhat.listen(endSil = 4000, maxSpeech = 60000) // patient waits silently — realistic for acknowledgements
         } else if (text.matchesKeyword(stopSessionKeywords)) {
             furhat.say("Okay, ending the session.")
             concealedSwitch(hostPersona)
@@ -55,7 +55,11 @@ val MainChat = state(Parent) {
         } else {
             furhat.gesture(GazeAversion(2.0))
             val response = call { currentPersona.chatbot.getResponse() } as String
-            furhat.say(response)
+            val segments = parseExprSegments(response)
+            for (segment in segments) {
+                performExpression(segment.gesture)
+                furhat.say(segment.text.replace(Regex("""\[EXPR:[^\]]*]"""), "").trim())
+            }
             reentry()
         }
     }
@@ -83,8 +87,8 @@ val AfterChat: State = state(Parent) {
         furhat.ask("Would you like to talk to someone else?")
     }
 
-    onResponse<Yes> { goto(ChooseMode(skipIntro = true)) }
-    onResponse<No>  { furhat.say("Okay, goodbye then."); goto(Idle) }
+    onResponse<Yes> { hostAckYes(); goto(ChooseMode(skipIntro = true)) }
+    onResponse<No>  { hostAckNo(); furhat.say("Okay, goodbye then."); goto(Idle) }
 
     onResponse {
         val text = it.text
@@ -94,18 +98,20 @@ val AfterChat: State = state(Parent) {
             p.otherNames.any { alias -> text.normalizeForKeyword().contains(alias.lowercase()) }
         }
         when {
-            matched != null                             -> startPersona(matched)
-            text.matchesKeyword(startNoKeywords)        -> { furhat.say("Okay, goodbye then."); goto(Idle) }
-            text.matchesKeyword(exitKeywords)           -> { furhat.say("Okay, goodbye then."); goto(Idle) }
-            text.matchesKeyword(switchToCustomKeywords) -> goto(DescribeCase())
-            text.matchesKeyword(listCasesKeywords)      -> goto(BrowsePersonas)
+            matched != null                             -> { hostAck(text); startPersona(matched) }
+            text.matchesKeyword(startNoKeywords)        -> { hostAck(text); furhat.say("Okay, goodbye then."); goto(Idle) }
+            text.matchesKeyword(exitKeywords)           -> { hostAck(text); furhat.say("Okay, goodbye then."); goto(Idle) }
+            text.matchesKeyword(switchToCustomKeywords) -> { hostAck(text); goto(DescribeCase()) }
+            text.matchesKeyword(listCasesKeywords)      -> { hostAck(text); goto(BrowsePersonas) }
             text.matchesKeyword(helpKeywords)           -> {
+                hostAck(text)
                 furhat.say("Would you like another case, or are you done for today?")
                 reentry()
             }
-            text.matchesKeyword(startYesKeywords)       -> goto(ChooseMode(skipIntro = true))
+            text.matchesKeyword(startYesKeywords)       -> { hostAck(text); goto(ChooseMode(skipIntro = true)) }
             // LLM fallback — context-aware classification for natural phrasing
             else -> {
+                hostError()
                 furhat.say("Hmm…")
                 val label = call {
                     classifyIntent(
@@ -120,7 +126,7 @@ val AfterChat: State = state(Parent) {
                     "browse" -> goto(BrowsePersonas)
                     "custom" -> goto(DescribeCase())
                     "exit"   -> { furhat.say("Okay, goodbye then."); goto(Idle) }
-                    else     -> { println(">>> ROBOT_LISTENING: AFTER_CHAT"); furhat.ask("Would you like to try another case, or go straight to a specific one?") }
+                    else     -> { hostError(); println(">>> ROBOT_LISTENING: AFTER_CHAT"); furhat.ask("Would you like to try another case, or go straight to a specific one?") }
                 }
             }
         }

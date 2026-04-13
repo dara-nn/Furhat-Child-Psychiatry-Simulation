@@ -9,11 +9,11 @@ import furhatos.util.Language
 import java.net.HttpURLConnection
 import java.net.URL
 
-val geminiServiceKey: String = "AIzaSyC5RnAkfM38jf0CYiT_h69ag_zwEWN7i7o"
+val geminiServiceKey: String = "AIzaSyBJw5yUCPSpBCDQ-cwP3xkkYfKd2zRbsec"
 
 class GeminiAIChatbot(val systemPrompt: String) {
 
-    private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+    private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
 
     fun getResponse(): String {
         return try {
@@ -63,6 +63,8 @@ class GeminiAIChatbot(val systemPrompt: String) {
             connection.requestMethod = "POST"
             connection.setRequestProperty("x-goog-api-key", geminiServiceKey)
             connection.setRequestProperty("Content-Type", "application/json")
+            connection.connectTimeout = 10000
+            connection.readTimeout = 45000
             connection.doOutput = true
 
             // Send request
@@ -333,12 +335,12 @@ fun parsePersonaJson(json: String): PersonaGenerationResult {
 }
 
 fun generatePersonaFromDescription(userDescription: String): PersonaGenerationResult {
-    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
     println("generatePersona: CALLED with description='$userDescription'")
     return try {
         val prompt = buildMetaPrompt(userDescription)
         val escapedPrompt = escapeForJson(prompt)
-        val requestBody = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}],"generationConfig":{"temperature":0.9,"maxOutputTokens":4096}}"""
+        val requestBody = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}],"generationConfig":{"temperature":0.9,"maxOutputTokens":4096},"safetySettings":[{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","threshold":"BLOCK_NONE"},{"category":"HARM_CATEGORY_HARASSMENT","threshold":"BLOCK_NONE"},{"category":"HARM_CATEGORY_HATE_SPEECH","threshold":"BLOCK_NONE"},{"category":"HARM_CATEGORY_SEXUALLY_EXPLICIT","threshold":"BLOCK_NONE"}]}"""
         println("generatePersona: sending request (body length=${requestBody.length})")
 
         val connection = java.net.URL(apiUrl).openConnection() as java.net.HttpURLConnection
@@ -396,7 +398,7 @@ fun generatePersonaFromDescription(userDescription: String): PersonaGenerationRe
  * Temperature 0 for deterministic classification.
  */
 fun callGeminiText(prompt: String): String {
-    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+    val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
     return try {
         val requestBody = """
         {
@@ -408,6 +410,8 @@ fun callGeminiText(prompt: String): String {
         connection.requestMethod = "POST"
         connection.setRequestProperty("x-goog-api-key", geminiServiceKey)
         connection.setRequestProperty("Content-Type", "application/json")
+        connection.connectTimeout = 8000
+        connection.readTimeout = 10000
         connection.doOutput = true
         connection.outputStream.bufferedWriter().use { it.write(requestBody) }
         if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
