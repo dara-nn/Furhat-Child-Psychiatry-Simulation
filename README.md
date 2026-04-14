@@ -30,6 +30,7 @@ When a custom case is generated, the system intelligently parses the demographic
 - **Masks:** Children under 12 receive the physical "child" Furhat mask, while patients 12 and older use the "adult" mask for a teenage appearance.
 - **Faces/Textures:** Demographics (gender and cultural background) are mapped to the closest matching Furhat face texture (e.g., "Asian teen girl" or "White teen boy").
 - **Voices:** The selected demographic assigns an appropriate ElevenLabs text-to-speech voice model that conveys a condition-appropriate emotional tone (e.g., flat and empty for depression).
+- **Facial Expressions:** Patients display real-time facial gestures and expressions in sync with their speech, for both pre-made and custom-generated cases.
 
 ## 🔄 Conversation Flow
 

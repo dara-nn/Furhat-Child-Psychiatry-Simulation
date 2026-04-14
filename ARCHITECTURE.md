@@ -354,9 +354,27 @@ val silencePhrases = listOf(
 **Generation failure:**
 > `"I'm having some trouble creating a case right now — you could try again in a moment. For now, let me show you the available cases."`
 
-### Type 4: LLM-Generated Patient Utterances (In-Session)
+### Type 4: In-Session Gesture and Expression Playback
 
-During `MainChat`, all responses are generated dynamically:
+#### Host Gestures
+
+Host-led states use lightweight acknowledgement and error gestures to give the user
+immediate visual feedback during navigation.
+
+**File:** `utils/utils.kt`
+
+- `hostAck(text)` is used across host states to pick a gesture from the interpreted intent label.
+- `hostAckYes()` and `hostAckNo()` provide explicit yes/no acknowledgements.
+- `hostError()` is used before host-side repair prompts such as "I didn't catch that".
+- In user-facing terms, yes/back/select-style acknowledgements are shown with nods, next/help cues with smiles, and unclear/error moments with brow-frowns.
+
+These helpers are used throughout the host flow before transitions and reprompts, so
+navigation feedback is visible even when the host utterance itself is short.
+
+#### Patient Expression Pipeline
+
+During `MainChat`, patient responses are generated dynamically and played back as
+expression-tagged speech segments.
 
 **File:** `flow/chatbot/chat.kt`; `flow/chatbot/gemini.kt`
 
@@ -376,7 +394,40 @@ reentry()
 - Max tokens: `1024`
 - History window: last 6 exchanges
 
-A `GazeAversion` gesture plays during the API call so the robot appears to "think". Expression tags (`[EXPR:sad]`, `[EXPR:fear]`, etc.) in the response are parsed and performed as Furhat gestures before the spoken text.
+A `GazeAversion` gesture plays during the API call so the robot appears to "think".
+After the LLM returns, inline expression tags in the response are parsed and performed
+before the associated text is spoken.
+
+**Tag format and rules**
+- Format: `[EXPR:tag]` placed immediately before the words it applies to
+- Maximum: `2` tags per response
+- Intended use: only at genuine emotional shifts
+- Spoken output: tags are stripped before `furhat.say(...)`, so they never appear in audio
+
+**Pipeline**
+- Persona system prompts in `setting/persona.kt` instruct the LLM to emit inline `[EXPR:tag]` markers
+- `parseExprSegments(raw)` in `utils/utils.kt` splits the raw response into `ExprSegment(tag, gesture, text)` items
+- `tagToGesture(tag)` maps each valid tag string to a Furhat `Gesture`
+- `performExpression(gesture)` starts the gesture and waits `1500 ms` before speech begins
+- `MainChat` then speaks each cleaned segment with `furhat.say(...)`
+
+**Supported expression tags**
+
+| Tag | Furhat gesture |
+|---|---|
+| `sad` | `ExpressSad(2.0)` |
+| `fear` | `ExpressFear(2.0)` |
+| `anger` | `ExpressAnger(2.0)` |
+| `disgust` | `ExpressDisgust(2.0)` |
+| `frown` | `BrowFrown(2.0)` |
+| `thoughtful` | `Thoughtful(2.0)` |
+| `surprise` | `Surprise(2.0)` |
+| `oh` | `Oh(2.0)` |
+| `gaze_away` | `GazeAway(2.0)` |
+| `eyes_closed` | `CloseEyes(1.5)` |
+| `shake` | `Shake(1.5)` |
+| `nod` | `Nod(1.5)` |
+| `smile` | `Smile(2.0)` |
 
 ### Type 5: Hardcoded Persona System Prompts
 

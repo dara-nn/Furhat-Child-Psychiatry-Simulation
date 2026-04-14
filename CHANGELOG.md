@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-Apr-14
+
+### Facial Expression System
+Patient responses now drive live facial animations on the robot. The LLM is instructed
+to embed inline expression tags in its responses, such as `[EXPR:fear]` or `[EXPR:sad]`,
+placed immediately before the text they apply to. Each tag triggers a Furhat gesture
+before that segment is spoken, so the robot's face shifts in sync with what the patient says.
+
+**13 supported tags:** sad, fear, anger, disgust, frown, thoughtful, surprise, oh,
+gaze_away, eyes_closed, shake, nod, smile
+
+**How it works:**
+- The LLM embeds `[EXPR:tag]` markers, with a maximum of 2 per response, as invisible markup
+- `parseExprSegments()` splits the response into tagged segments
+- `tagToGesture()` maps each tag to a Furhat gesture with a duration of 1.5 to 2.0 seconds
+- `performExpression()` fires the gesture asynchronously and waits 1500 ms before speech
+  starts so the face settles visually before the patient speaks
+- Tags are stripped from the spoken text and never appear in audio
+
+The host also uses a lighter gesture system during navigation. Acknowledgements
+such as yes, no, back, and select are paired with brief nods, next/help cues use
+smiles, and unrecognised input is marked with a brief brow-frown.
+
 ## 2026-Mar-18
 
 ### Custom Case Generation — Now Working
