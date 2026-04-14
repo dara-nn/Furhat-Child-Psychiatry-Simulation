@@ -6,10 +6,11 @@ import furhatos.flow.kotlin.Furhat
 import furhatos.flow.kotlin.voice.ElevenlabsVoice
 import furhatos.util.Gender
 import furhatos.util.Language
+import furhatos.app.openaichat.setting.envOrProperty
 import java.net.HttpURLConnection
 import java.net.URL
 
-val geminiServiceKey: String = "AIzaSyBJw5yUCPSpBCDQ-cwP3xkkYfKd2zRbsec"
+val geminiServiceKey: String = envOrProperty("gemini.api.key") ?: ""
 
 class GeminiAIChatbot(val systemPrompt: String) {
 
