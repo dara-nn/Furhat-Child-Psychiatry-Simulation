@@ -10,9 +10,9 @@ A FurhatOS skill designed for training child and adolescent psychiatry interview
   1. Low-latency keyword matching for standard commands (e.g., "stop session", "yes/no").
   2. LLM-based intent classification via Gemini when complex user utterances don't match simple keywords.
 
-## 🧠 Pre-Made Clinical Cases
+## 🧠 Clinical Cases
 
-The simulation comes with several built-in personas, each configured to speak with a condition-appropriate emotional tone.
+The simulation includes 7 built-in patient personas. Each patient speaks with a condition-appropriate emotional tone, displays real-time facial expressions in sync with their speech, and is paired with a matching Furhat face, mask, and ElevenLabs voice based on their age, gender, and cultural background.
 
 | Name | Demographics | Clinical Presentation |
 |---|---|---|
@@ -24,13 +24,7 @@ The simulation comes with several built-in personas, each configured to speak wi
 | **Carlos** | 17M, Mexican | Masked depression |
 | **Dmitri** | 16M, Russian | Irritable depression |
 
-## ✨ Custom Case Generation & Asset Mapping
-
-When a custom case is generated, the system intelligently parses the demographics and automatically pairs the LLM persona with physical robot traits:
-- **Masks:** Children under 12 receive the physical "child" Furhat mask, while patients 12 and older use the "adult" mask for a teenage appearance.
-- **Faces/Textures:** Demographics (gender and cultural background) are mapped to the closest matching Furhat face texture (e.g., "Asian teen girl" or "White teen boy").
-- **Voices:** The selected demographic assigns an appropriate ElevenLabs text-to-speech voice model that conveys a condition-appropriate emotional tone (e.g., flat and empty for depression).
-- **Facial Expressions:** Patients display real-time facial gestures and expressions in sync with their speech, for both pre-made and custom-generated cases.
+Clinicians can also describe any custom patient profile in natural language (e.g., "15-year-old boy struggling with ADHD and school refusal"). The system uses Gemini to generate a complete persona on the fly and automatically assigns the appropriate face, mask, and voice.
 
 ## 🔄 Conversation Flow
 
