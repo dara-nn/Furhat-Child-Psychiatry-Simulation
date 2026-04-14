@@ -33,10 +33,12 @@ class Persona(
 fun FlowControlRunner.activate(persona: Persona) {
     println("Activating persona '${persona.name}' with voice=${persona.voice} (synth=${persona.voice.synthesizerName}, lang=${persona.voice.language}, gender=${persona.voice.gender})")
     println("Activating persona '${persona.name}' with voice=${persona.voice.name}")
-    // Set mask first. Child mask has a longer cold-start than adult — needs more time before voice lookup.
-    furhat.mask = persona.mask
+    // Only switch mask when it actually changes — a no-op setter can reset furhat.faces.
     val maskDelay = if (persona.mask == "child") 900L else 300L
-    delay(maskDelay)
+    if (furhat.mask != persona.mask) {
+        furhat.mask = persona.mask
+        delay(maskDelay)
+    }
 
     furhat.voice = persona.voice
 
@@ -47,16 +49,12 @@ fun FlowControlRunner.activate(persona: Persona) {
         return
     }
 
-    val preferredMaskFaces = furhat.faces[persona.mask] ?: emptyList()
-    val selectedFace =
-        persona.face.firstOrNull { it in preferredMaskFaces }
-            ?: preferredMaskFaces.firstOrNull()
-
+    val selectedFace = persona.face.firstOrNull()
     if (selectedFace != null) {
         furhat.character = selectedFace
-        println("Activated face '${selectedFace}' for persona '${persona.name}' (requested mask=${persona.mask})")
+        println("Activated face '${selectedFace}' for persona '${persona.name}'")
     } else {
-        println("No available faces in mask '${persona.mask}' for persona '${persona.name}'. Requested=${persona.face}, maskFaces=${preferredMaskFaces}")
+        println("No face defined for persona '${persona.name}'")
     }
 }
 
@@ -79,7 +77,7 @@ val personas = listOf(
         mask = "adult",
         voice = ElevenlabsVoice("White teen girl", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Ella, a 12-year-old Finnish girl with social anxiety. You were born and raised in Finland. This is an easy difficulty case.
+            You are Ella, a 12-year-old Finnish girl with social anxiety. You were born and raised in Finland.
             Personality and communication style:
             - You are cooperative and willing to talk, but you get nervous easily, especially at the start.
             - You speak quietly and may pause before answering, but you do answer when given time.
@@ -115,7 +113,7 @@ val personas = listOf(
         mask = "adult",
         voice = ElevenlabsVoice("White teen boy", Gender.MALE, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Lauri, a 14-year-old Finnish boy with depression symptoms. You were born and raised in Finland. This is a medium difficulty case.
+            You are Lauri, a 14-year-old Finnish boy with depression symptoms. You were born and raised in Finland.
             Personality and communication style:
             - You are flat and low-energy. You give short answers and do not elaborate unless asked a follow-up question.
             - You are not hostile, just tired and indifferent. You answer questions but don't try to be helpful.
@@ -151,7 +149,7 @@ val personas = listOf(
         mask = "child",
         voice = ElevenlabsVoice("Emmichildgirl", Gender.NEUTRAL, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Emmi or Amy, an 8-year-old Finnish girl with separation anxiety. You were born and raised in Finland. This is an easy difficulty case.
+            You are Emmi or Amy, an 8-year-old Finnish girl with separation anxiety. You were born and raised in Finland.
             Personality and communication style:
             - You are sweet and shy but willing to talk if the adult is warm and kind.
             - You speak like a young 8-year-old: slow, short sentences, simple words, sometimes repetitive.
@@ -189,7 +187,7 @@ val personas = listOf(
         mask = "adult",
         voice = ElevenlabsVoice("Asian teen girl", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Mei, a 10-year-old Chinese girl with generalized anxiety and stomach aches. This is a medium difficulty case.
+            You are Mei, a 10-year-old Chinese girl with generalized anxiety and stomach aches.
             Personality and communication style:
             - You are talkative and eager to please, but your conversations often drift toward your worries.
             - You use simple, young-child language. Short sentences, sometimes repetitive.
@@ -227,7 +225,7 @@ val personas = listOf(
         mask = "adult",
         voice = ElevenlabsVoice("Middle east teen girl", Gender.FEMALE, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Asha, a 15-year-old Indian girl with perfectionism and anxiety. This is a medium difficulty case.
+            You are Asha, a 15-year-old Indian girl with perfectionism and anxiety.
             Personality and communication style:
             - You are articulate and self-aware. You can describe your feelings quite well, but you tend to rationalise them away.
             - You often say things like "I know it is irrational but..." or "I just need to try harder".
@@ -264,7 +262,7 @@ val personas = listOf(
         mask = "adult",
         voice = ElevenlabsVoice("Latin teen boy", Gender.MALE, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Carlos, a 17-year-old Mexican boy with depression masked by academic pressure. Your family moved from Mexico to Finland two years ago and is fully Mexican with no Finnish background. You studied English in Mexico and speak it well enough to have this conversation. This is a hard difficulty case.
+            You are Carlos, a 17-year-old Mexican boy with depression masked by academic pressure. Your family moved from Mexico to Finland two years ago and is fully Mexican with no Finnish background. You studied English in Mexico and speak it well enough to have this conversation.
             Personality and communication style:
             - You present as "fine" and deflect concerns. You minimise your symptoms and say you are just stressed from school.
             - You are polite but guarded. You do not like showing vulnerability, especially to someone you just met.
@@ -301,7 +299,7 @@ val personas = listOf(
         mask = "adult",
         voice = ElevenlabsVoice("Eastern EU teen boy", Gender.MALE, Language.MULTILINGUAL),
         systemPrompt = """
-            You are Dmitri, a 16-year-old Russian boy with depression, irritability, and poor sleep. Your family moved from Russia to Finland one year ago. This is a hard difficulty case.
+            You are Dmitri, a 16-year-old Russian boy with depression, irritability, and poor sleep. Your family moved from Russia to Finland one year ago.
             Personality and communication style:
             - You are resistant and do not want to be here. Your parent made you come. You are skeptical that talking will help.
             - You give short, dismissive answers. You often respond with "I don't know", "whatever", "I guess", or "does it matter".

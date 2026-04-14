@@ -14,15 +14,15 @@ A FurhatOS skill designed for training child and adolescent psychiatry interview
 
 The simulation comes with several built-in personas, each configured to speak with a condition-appropriate emotional tone.
 
-| Name | Demographics | Clinical Presentation | Difficulty |
-|---|---|---|---|
-| **Helmi** | 12F, Finnish | Social anxiety | Easy |
-| **Lauri** | 14M, Finnish | Depression | Medium |
-| **Emmi** | 8F, Finnish | Separation anxiety | Easy |
-| **Mei** | 10F, Chinese | Generalized anxiety | Medium |
-| **Asha** | 15F, Indian | Perfectionism and anxiety | Medium |
-| **Carlos** | 17M, Mexican | Masked depression | Hard |
-| **Dmitri** | 16M, Russian | Irritable depression | Hard |
+| Name | Demographics | Clinical Presentation |
+|---|---|---|
+| **Ella** | 12F, Finnish | Social anxiety |
+| **Lauri** | 14M, Finnish | Depression |
+| **Emmi** | 8F, Finnish | Separation anxiety |
+| **Mei** | 10F, Chinese | Generalized anxiety |
+| **Asha** | 15F, Indian | Perfectionism and anxiety |
+| **Carlos** | 17M, Mexican | Masked depression |
+| **Dmitri** | 16M, Russian | Irritable depression |
 
 ## ✨ Custom Case Generation & Asset Mapping
 
@@ -84,7 +84,7 @@ graph TD
    ```bash
    ./gradlew shadowJar
    ```
-   This compiles the project and produces a `.skill` file (e.g., `OpenAIChat_1.1.0.skill`) in `build/libs/`.
+   This compiles the project and produces a `.skill` file (e.g., `PsychiatrySimulation_1.1.0.skill`) in `build/libs/`.
 
 5. **Deploy:**
    Upload the compiled `.skill` file via the Furhat web dashboard and launch it.
@@ -112,7 +112,7 @@ The project includes a robust headless testing suite that uses system text-to-sp
   python3 tests/build_and_test.py
   ```
 - **Run individual scenarios:**
-  - `python3 tests/test_runner.py` — Runs the "Happy Path" (Browsing cases, talking to Helmi).
+  - `python3 tests/test_runner.py` — Runs the "Happy Path" (Browsing cases, talking to Ella).
   - `python3 tests/test_error_paths.py` — Runs the "Unhappy Path" (Testing timeouts, handling silence, and generating custom cases).
 
 ## 🙏 Acknowledgements

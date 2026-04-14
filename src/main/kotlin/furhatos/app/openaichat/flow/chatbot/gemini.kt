@@ -195,14 +195,13 @@ JSON object with these exact fields:
   "gender": "<male|female|neutral>",
   "background": "<finnish|european|eastern_eu|latin|middle_eastern|asian|african>",
   "condition": "<short psychiatric diagnostic label, e.g. ADHD, depression, anxiety, ODD, autism>",
-  "difficulty": "<easy|medium|hard>",
   "intro": "<MAXIMUM 4 WORDS. The literal words the child says first — e.g. 'Hi.', 'Um... hi.', 'Hello.', 'Mm.' No stage directions, no actions, no symptoms, no personality. Just the greeting itself.>",
   "desc": "<short description, e.g. '14-year-old boy with ADHD'>",
   "systemPrompt": "<character brief — follow the structure and rules below>"
 }
 
 Structure for the systemPrompt field (use these exact section headings):
-You are [name], a [age]-year-old [gender] with [condition]. [1-sentence backstory]. This is a [difficulty] difficulty case.
+You are [name], a [age]-year-old [gender] with [condition]. [1-sentence backstory].
 Personality and communication style:
 - [3-4 bullet points: how they speak, their attitude, openness level, typical responses]
 - Include one bullet describing the emotional tone of their voice — appropriate to their condition (e.g. flat and empty for depression, quietly sad for anxiety, tearful for separation anxiety, hollow underneath for masked emotions).
