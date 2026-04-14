@@ -2,12 +2,13 @@ package furhatos.app.openaichat.flow
 
 import furhatos.app.openaichat.flow.chatbot.geminiServiceKey
 import furhatos.app.openaichat.setting.activate
+import furhatos.app.openaichat.setting.envOrProperty
 import furhatos.app.openaichat.setting.hostPersona
 import furhatos.event.requests.RequestConfigElevenlabs
 import furhatos.event.responses.ResponseConfigElevenlabs
 import furhatos.flow.kotlin.*
 
-val elevenLabsApiKey: String = "<ELEVENLABS_KEY_REDACTED>"
+val elevenLabsApiKey: String = envOrProperty("elevenlabs.api.key") ?: ""
 
 val Init: State = state() {
 

@@ -109,7 +109,7 @@ val listCasesKeywords = listOf(
     "list cases", "show cases", "show me the cases", "show me the list",
     "available cases", "what cases do you have", "what's available",
     "browse", "browse cases", "the list", "show list", "what you have",
-    "what do you have", "cases", "the cases", "show me", "list", "list please"
+    "what do you have", "the cases", "show me", "list", "list please"
 )
 
 // ── MainChat ──────────────────────────────────────────────────────────────────
