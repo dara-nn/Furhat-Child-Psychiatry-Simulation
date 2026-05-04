@@ -116,9 +116,9 @@ val listCasesKeywords = listOf(
 // ONLY these keywords are active during MainChat. "stop", "bye", etc. must NOT trigger.
 
 val stopSessionKeywords = listOf(
-    "stop session", "stop the session", "end session", "end the session",
+    "stop session", "stop the session", "end session", "end the session", "and session", "and the session"
     "i want to stop the session", "stop this session", "finish session",
-    "finish the session", "i want to end", "i want to stop this",
+    "finish the session", "i want to end", "i want to stop this", "i want to and",
     "session stop", "session end",
     "exit", "exit session", "stop section", "stop training", "end training",
     "let's stop", "lets stop", "i want to stop"
