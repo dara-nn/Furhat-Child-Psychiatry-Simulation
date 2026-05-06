@@ -4,14 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.9.24"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     application
-    kotlin("jvm")
 }
 
 // Run the Kotlin compiler on JDK 15 to avoid Java 25 version-string parse failures in Kotlin 1.9.x.
 // jvmTarget is explicitly set to 1.8 so the compiled bytecode stays compatible with the Furhat OS JVM.
 kotlin {
     jvmToolchain(15)
-    jvmToolchain(8)
 }
 
 application {
@@ -19,6 +17,8 @@ application {
 }
 
 java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
@@ -36,8 +36,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.furhatrobotics.furhatos:furhat-commons:2.9.1")
-    implementation(kotlin("stdlib-jdk8"))
+    implementation("com.furhatrobotics.furhatos:furhat-commons:2.9.2")
 }
 
 tasks.jar {

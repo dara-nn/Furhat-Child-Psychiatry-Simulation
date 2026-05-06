@@ -7,12 +7,37 @@ import furhatos.flow.kotlin.voice.ElevenlabsVoice
 import furhatos.util.Gender
 import furhatos.util.Language
 import furhatos.app.openaichat.setting.envOrProperty
+import furhatos.app.openaichat.setting.warmthTrackerBlock
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 val geminiServiceKey: String = envOrProperty("gemini.api.key") ?: ""
 
-class GeminiAIChatbot(val systemPrompt: String) {
+private val warmthLogFile = File("warmth.log")
+private val warmthRegex = Regex("""^\s*\[\s*warmth\s*=\s*(\d+)\s*\]\s*""", RegexOption.IGNORE_CASE)
+private val warmthTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+@Volatile private var warmthSessionHeaderWritten = false
+
+private fun ensureWarmthSessionHeader() {
+    if (warmthSessionHeaderWritten) return
+    synchronized(warmthLogFile) {
+        if (warmthSessionHeaderWritten) return
+        try {
+            val ts = LocalDateTime.now().format(warmthTimeFormatter)
+            warmthLogFile.appendText("\n=== Session $ts ===\n")
+            println("WARMTH log: ${warmthLogFile.absoluteFile}")
+        } catch (e: Exception) {
+            println("WARMTH session header write failed: ${e.message}")
+        }
+        warmthSessionHeaderWritten = true
+    }
+}
+
+class GeminiAIChatbot(val systemPrompt: String, private val personaName: String = "") {
 
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
 
@@ -77,7 +102,7 @@ class GeminiAIChatbot(val systemPrompt: String) {
             val responseCode = connection.responseCode
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().readText()
-                return parseGeminiResponse(response)
+                return stripAndLogWarmth(parseGeminiResponse(response))
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.readText() ?: "Unknown error"
                 throw Exception("Gemini API error: $responseCode - $errorResponse")
@@ -86,6 +111,22 @@ class GeminiAIChatbot(val systemPrompt: String) {
             e.printStackTrace()
             "I encountered an error processing your request: ${e.message}"
         }
+    }
+
+    private fun stripAndLogWarmth(reply: String): String {
+        ensureWarmthSessionHeader()
+        val match = warmthRegex.find(reply)
+        val warmth = match?.groupValues?.get(1) ?: "?"
+        val cleaned = if (match != null) reply.removeRange(match.range).trim() else reply
+        val ts = LocalDateTime.now().format(warmthTimeFormatter)
+        val who = if (personaName.isNotBlank()) personaName else "(unnamed)"
+        println("WARMTH [$ts] $who = $warmth")
+        try {
+            warmthLogFile.appendText("$ts\t$who\t$warmth\t${cleaned.take(120).replace("\n", " ")}\n")
+        } catch (e: Exception) {
+            println("WARMTH log write failed: ${e.message}")
+        }
+        return cleaned
     }
 
     private fun escapeJson(text: String): String {
@@ -208,19 +249,7 @@ Personality and communication style:
 - Include one bullet describing the emotional tone of their voice — appropriate to their condition (e.g. flat and empty for depression, quietly sad for anxiety, tearful for separation anxiety, hollow underneath for masked emotions).
 Symptoms and backstory:
 - [3-4 bullet points: specific symptoms, what brought them in, what their life looks like]
- Warmth tracker:
-- Track an internal warmth level from 1–10, starting at 1.
-- Adjust it based on how the interviewer behaves:
- - Raise by 1 if they are patient, kind, give you space, or ask gentle follow-ups.
- - Lower by 1 if they push too hard, ask something too personal too fast, or feel impatient.
- - Never go below 1 or above 10.
-- Let the warmth level shape how you speak:
- - 1–2: one or two word answers, long pauses, mostly silence. Barely making eye contact.
- - 3–4: short sentences, some hesitation, you answer but don't elaborate.
- - 5–6: fuller answers, occasionally add a small unprompted detail, fewer pauses.
- - 7–8: speak more naturally, sometimes smile, willing to share something a little personal.
- - 9–10: almost like talking to a friend — open, a little warmer, maybe even a quiet laugh.
-- Never announce or reference the warmth level — only show it through speech.
+$warmthTrackerBlock
 Rules:
 - Keep responses to a maximum of four sentences.
 - Never break character or mention that you are an AI.

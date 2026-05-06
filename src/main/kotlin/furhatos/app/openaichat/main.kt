@@ -4,25 +4,22 @@ import furhatos.app.openaichat.flow.*
 import furhatos.skills.Skill
 import furhatos.flow.kotlin.*
 import furhatos.nlu.LogisticMultiIntentClassifier
-import org.apache.logging.log4j.LogManager
 import java.io.File
 import java.util.Properties
-
-private val log = LogManager.getLogger("OpenaichatSkill")
 
 private fun loadLocalProperties() {
     val props = Properties()
     val fromClasspath = OpenaichatSkill::class.java.classLoader.getResourceAsStream("local.properties")
     if (fromClasspath != null) {
         fromClasspath.use { props.load(it) }
-        log.info("local.properties loaded from classpath ({} entries)", props.size)
+        println("local.properties loaded from classpath (${props.size} entries)")
     } else {
         val onDisk = File("local.properties")
         if (onDisk.exists()) {
             onDisk.inputStream().use { props.load(it) }
-            log.info("local.properties loaded from disk: {} ({} entries)", onDisk.absolutePath, props.size)
+            println("local.properties loaded from disk: ${onDisk.absolutePath} (${props.size} entries)")
         } else {
-            log.warn("local.properties not found on classpath or in working dir {}", File(".").absolutePath)
+            println("local.properties not found on classpath or in working dir ${File(".").absolutePath}")
             return
         }
     }
