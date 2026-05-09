@@ -36,7 +36,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.furhatrobotics.furhatos:furhat-commons:2.9.1")
+    implementation("com.furhatrobotics.furhatos:furhat-commons:2.9.2")
 }
 
 tasks.jar {
