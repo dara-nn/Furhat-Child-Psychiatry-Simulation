@@ -18,7 +18,7 @@ The simulation includes 7 built-in patient personas. Each patient speaks with a 
 |---|---|---|---|
 | <img src="media/white-teen-girl.png" width="60"> | **Ella** | 12F, Finnish | Social anxiety |
 | <img src="media/white-teen-boy.png" width="60"> | **Lauri** | 14M, Finnish | Depression |
-| — | **Emmi** | 8F, Finnish | Separation anxiety |
+| <img src="media/child-girl.png" width="60"> | **Emmi** | 8F, Finnish | Separation anxiety |
 | <img src="media/asian-teen-girl.png" width="60"> | **Mei** | 10F, Chinese | Generalized anxiety |
 | <img src="media/middle-east-teen-girl.png" width="60"> | **Asha** | 15F, Indian | Perfectionism and anxiety |
 | <img src="media/latin-teen-boy.png" width="60"> | **Carlos** | 17M, Mexican | Masked depression |
