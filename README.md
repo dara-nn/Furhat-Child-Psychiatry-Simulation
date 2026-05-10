@@ -35,18 +35,17 @@ Clinicians can also describe any custom patient profile in natural language (e.g
 The simulation follows a structured state machine flow to guide users from setup to the clinical interview.
 
 ```mermaid
-graph TD
-    A[Idle] -->|"User enters scene"| B(InitialInteraction)
-    B -->|"Yes"| C(ChooseMode)
-    B -->|"No"| A
-    C -->|"Browse Ready-Made"| D(BrowsePersonas)
-    C -->|"Create Custom"| E(DescribeCase)
-    D -->|"Selects Persona"| F(MainChat)
-    E -->|"Provides Description\n(Gemini Generates Persona)"| F
-    F <-->|"Clinical Interview\n(Gemini Chatbot)"| F
-    F -->|"Stop Session"| G(AfterChat)
-    G -->|"Yes (Another Case)"| C
-    G -->|"No (Done)"| A
+graph LR
+    A[Idle] -->|enter| B(InitialInteraction)
+    B -->|yes| C(ChooseMode)
+    B -->|no| A
+    C -->|ready-made| D(BrowsePersonas)
+    C -->|custom| E(DescribeCase)
+    D -->|select| F(MainChat)
+    E -->|describe| F
+    F -->|stop| G(AfterChat)
+    G -->|another| C
+    G -->|done| A
 ```
 
 ## 🛠️ Prerequisites
