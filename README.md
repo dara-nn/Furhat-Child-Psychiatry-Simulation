@@ -55,7 +55,6 @@ graph TD
   - [ElevenLabs API Key](https://elevenlabs.io/) for high-quality TTS voices
 - **Environment:** 
   - JDK 15 (set `org.gradle.java.home` in your `gradle.properties`)
-  - Python 3.x for running the test suite
 
 ## ⚙️ Setup and Installation
 
@@ -97,20 +96,7 @@ src/main/kotlin/furhatos/app/openaichat/
 │   └── parent.kt       # Shared state behaviour and background gestures (e.g., gaze aversion)
 └── setting/
     └── persona.kt      # Persona data structures and Face/Voice activation logic
-tests/                  # Headless Python test suite
 ```
-
-## 🧪 Automated Testing
-
-The project includes a robust headless testing suite that uses system text-to-speech to interact with the Furhat skill locally. This is useful for validating conversational flows after making changes.
-
-- **Run the full test suite (builds and runs all scenarios):**
-  ```bash
-  python3 tests/build_and_test.py
-  ```
-- **Run individual scenarios:**
-  - `python3 tests/test_runner.py` — Runs the "Happy Path" (Browsing cases, talking to Ella).
-  - `python3 tests/test_error_paths.py` — Runs the "Unhappy Path" (Testing timeouts, handling silence, and generating custom cases).
 
 ## 🙏 Acknowledgements
 
