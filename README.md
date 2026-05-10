@@ -14,15 +14,15 @@ A FurhatOS skill designed for training child and adolescent psychiatry interview
 
 The simulation includes 7 built-in patient personas. Each patient speaks with a condition-appropriate emotional tone, displays real-time facial expressions in sync with their speech, and is paired with a matching Furhat face, mask, and ElevenLabs voice based on their age, gender, and cultural background.
 
-| Name | Demographics | Clinical Presentation |
-|---|---|---|
-| **Ella** | 12F, Finnish | Social anxiety |
-| **Lauri** | 14M, Finnish | Depression |
-| **Emmi** | 8F, Finnish | Separation anxiety |
-| **Mei** | 10F, Chinese | Generalized anxiety |
-| **Asha** | 15F, Indian | Perfectionism and anxiety |
-| **Carlos** | 17M, Mexican | Masked depression |
-| **Dmitri** | 16M, Russian | Irritable depression |
+| Face | Name | Demographics | Clinical Presentation |
+|---|---|---|---|
+| <img src="media/white-teen-girl.png" width="60"> | **Ella** | 12F, Finnish | Social anxiety |
+| <img src="media/white-teen-boy.png" width="60"> | **Lauri** | 14M, Finnish | Depression |
+| <img src="media/child-girl.png" width="60"> | **Emmi** | 8F, Finnish | Separation anxiety |
+| <img src="media/asian-teen-girl.png" width="60"> | **Mei** | 10F, Chinese | Generalized anxiety |
+| <img src="media/middle-east-teen-girl.png" width="60"> | **Asha** | 15F, Indian | Perfectionism and anxiety |
+| <img src="media/latin-teen-boy.png" width="60"> | **Carlos** | 17M, Mexican | Masked depression |
+| <img src="media/latin-teen-boy.png" width="60"> | **Dmitri** | 16M, Russian | Irritable depression |
 
 Clinicians can also describe any custom patient profile in natural language (e.g., "15-year-old boy struggling with ADHD and school refusal"). The system uses Gemini to generate a complete persona on the fly and automatically assigns the appropriate face, mask, and voice.
 
