@@ -2,7 +2,11 @@
 
 A FurhatOS skill designed for training child and adolescent psychiatry interview skills. This robotic simulation provides lifelike AI-powered pediatric patients with distinct psychological profiles, allowing clinicians and medical students to practise clinical interviews in a safe, repeatable, and realistic environment.
 
-▶ Demos: [Pre-made persona](media/demo-premade.mp4) · [Custom persona](media/demo-custom.mp4)
+<p align="center">
+  <a href="media/demo-premade.mp4"><img src="https://img.shields.io/badge/▶_Watch_Demo-Pre--made_Persona-2D7FF9?style=for-the-badge" alt="Pre-made persona demo"></a>
+  &nbsp;
+  <a href="media/demo-custom.mp4"><img src="https://img.shields.io/badge/▶_Watch_Demo-Custom_Persona-9B59B6?style=for-the-badge" alt="Custom persona demo"></a>
+</p>
 
 ## 🚀 Features
 
