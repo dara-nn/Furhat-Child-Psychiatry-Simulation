@@ -14,8 +14,6 @@ A FurhatOS skill designed for training child and adolescent psychiatry interview
 
 The simulation includes 7 built-in patient personas. Each patient speaks with a condition-appropriate emotional tone, displays real-time facial expressions in sync with their speech, and is paired with a matching Furhat face, mask, and ElevenLabs voice based on their age, gender, and cultural background.
 
-![Persona faces](media/personas-grid.png)
-
 | Face | Name | Demographics | Clinical Presentation |
 |---|---|---|---|
 | <img src="media/white-teen-girl.png" width="60"> | **Ella** | 12F, Finnish | Social anxiety |
@@ -27,6 +25,8 @@ The simulation includes 7 built-in patient personas. Each patient speaks with a 
 | <img src="media/latin-teen-boy.png" width="60"> | **Dmitri** | 16M, Russian | Irritable depression |
 
 Clinicians can also describe any custom patient profile in natural language (e.g., "15-year-old boy struggling with ADHD and school refusal"). The system uses Gemini to generate a complete persona on the fly and automatically assigns the appropriate face, mask, and voice.
+
+![Persona faces](media/personas-grid.png)
 
 ## 🔄 Conversation Flow
 
