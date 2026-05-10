@@ -2,11 +2,16 @@
 
 A FurhatOS skill designed for training child and adolescent psychiatry interview skills. This robotic simulation provides lifelike AI-powered pediatric patients with distinct psychological profiles, allowing clinicians and medical students to practise clinical interviews in a safe, repeatable, and realistic environment.
 
-<p align="center">
-  <a href="media/demo-premade.mp4"><img src="https://img.shields.io/badge/▶_Watch_Demo-Pre--made_Persona-2D7FF9?style=for-the-badge" alt="Pre-made persona demo"></a>
-  &nbsp;
-  <a href="media/demo-custom.mp4"><img src="https://img.shields.io/badge/▶_Watch_Demo-Custom_Persona-9B59B6?style=for-the-badge" alt="Custom persona demo"></a>
-</p>
+<table align="center">
+  <tr>
+    <td align="center"><strong>▶ Pre-made Persona Demo</strong></td>
+    <td align="center"><strong>▶ Custom Persona Demo</strong></td>
+  </tr>
+  <tr>
+    <td><video src="https://github.com/dara-nn/Furhat-Child-Psychiatry-Simulation/raw/main/media/videos/demo-premade.mp4" controls width="320"></video></td>
+    <td><video src="https://github.com/dara-nn/Furhat-Child-Psychiatry-Simulation/raw/main/media/videos/demo-custom.mp4" controls width="320"></video></td>
+  </tr>
+</table>
 
 ## 🚀 Features
 
@@ -22,13 +27,13 @@ The simulation includes 7 built-in patient personas. Each patient speaks with a 
 
 | Face | Name | Demographics | Clinical Presentation |
 |---|---|---|---|
-| <img src="media/white-teen-girl.png" width="60"> | **Ella** | 12F, Finnish | Social anxiety |
-| <img src="media/white-teen-boy.png" width="60"> | **Lauri** | 14M, Finnish | Depression |
-| <img src="media/child-girl.png" width="60"> | **Emmi** | 8F, Finnish | Separation anxiety |
-| <img src="media/asian-teen-girl.png" width="60"> | **Mei** | 10F, Chinese | Generalized anxiety |
-| <img src="media/middle-east-teen-girl.png" width="60"> | **Asha** | 15F, Indian | Perfectionism and anxiety |
-| <img src="media/latin-teen-boy.png" width="60"> | **Carlos** | 17M, Mexican | Masked depression |
-| <img src="media/latin-teen-boy.png" width="60"> | **Dmitri** | 16M, Russian | Irritable depression |
+| <img src="media/faces/white-teen-girl.png" width="60"> | **Ella** | 12F, Finnish | Social anxiety |
+| <img src="media/faces/white-teen-boy.png" width="60"> | **Lauri** | 14M, Finnish | Depression |
+| <img src="media/faces/child-girl.png" width="60"> | **Emmi** | 8F, Finnish | Separation anxiety |
+| <img src="media/faces/asian-teen-girl.png" width="60"> | **Mei** | 10F, Chinese | Generalized anxiety |
+| <img src="media/faces/middle-east-teen-girl.png" width="60"> | **Asha** | 15F, Indian | Perfectionism and anxiety |
+| <img src="media/faces/latin-teen-boy.png" width="60"> | **Carlos** | 17M, Mexican | Masked depression |
+| <img src="media/faces/latin-teen-boy.png" width="60"> | **Dmitri** | 16M, Russian | Irritable depression |
 
 Clinicians can also describe any custom patient profile in natural language (e.g., "15-year-old boy struggling with ADHD and school refusal"). The system uses Gemini to generate a complete persona on the fly and automatically assigns the appropriate face, mask, and voice.
 
