@@ -1,5 +1,7 @@
 # Furhat Child Psychiatry Simulation
 
+▶ Demos: [Pre-made persona](media/demo-premade.mp4) · [Custom persona](media/demo-custom.mp4)
+
 A FurhatOS skill designed for training child and adolescent psychiatry interview skills. This robotic simulation provides lifelike AI-powered pediatric patients with distinct psychological profiles, allowing clinicians and medical students to practise clinical interviews in a safe, repeatable, and realistic environment.
 
 ## 🚀 Features
