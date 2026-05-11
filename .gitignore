@@ -33,4 +33,4 @@ gradle.properties
 
 # Claude Code and local docs — never sync
 .claude/
-docs/
+docs/media/HTI.560-Robot-CAP-Psychiatry-Didara.pptx

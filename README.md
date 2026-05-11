@@ -2,29 +2,43 @@
 
 A FurhatOS skill designed for training child and adolescent psychiatry interview skills. This robotic simulation provides lifelike AI-powered pediatric patients with distinct psychological profiles, allowing clinicians and medical students to practise clinical interviews in a safe, repeatable, and realistic environment.
 
+<p align="center">
+  <a href="https://youtu.be/SPwy_L7XIrU"><img src="https://img.shields.io/badge/▶_Project_Intro-2D7FF9?style=for-the-badge" alt="Project intro"></a>
+  &nbsp;&nbsp;
+  <a href="https://tuni-my.sharepoint.com/:p:/g/personal/dilara_albayrak_tuni_fi/IQDyIy_RD9THQK_V03_bDjDfAZugVHsfqJoIyGyj887jjx8?e=mZhEc7"><img src="https://img.shields.io/badge/📄_Report-9B59B6?style=for-the-badge" alt="Report"></a>
+</p>
+
 ## 🚀 Features
 
-- **Pre-Made Clinical Cases:** The system comes with 7 built-in, ready-to-use patient personas with varied clinical presentations (e.g., social anxiety, depression, perfectionism) and difficulties.
+- **Pre-Made Clinical Cases:** The system comes with 6 built-in, ready-to-use patient personas with varied clinical presentations (e.g., social anxiety, depression, perfectionism) and difficulties.
 - **Dynamic Case Generation:** Clinicians can also describe any custom patient profile (e.g., "15-year-old boy struggling with ADHD and school refusal"). The system leverages Google Gemini to generate a complete persona on the fly—including name, backstory, clinical symptoms, personality traits, and a custom system prompt.
 - **Hybrid Intent Matching:** Navigates conversation states using a fast, two-tier pipeline:
   1. Low-latency keyword matching for standard commands (e.g., "stop session", "yes/no").
   2. LLM-based intent classification via Gemini when complex user utterances don't match simple keywords.
 
+<table align="center">
+  <tr>
+    <td align="center"><strong>Pre-made Persona Demo</strong></td>
+    <td align="center"><strong>Custom Persona Demo</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://youtu.be/lfckbXYJsn0"><img src="media/demo-premade-thumb.jpg" width="300" alt="Watch pre-made persona demo on YouTube"></a></td>
+    <td align="center"><a href="https://youtu.be/nGLQA_3i6FQ"><img src="media/demo-custom-thumb.jpg" width="300" alt="Watch custom persona demo on YouTube"></a></td>
+  </tr>
+</table>
+
 ## 🧠 Clinical Cases
 
-The simulation includes 7 built-in patient personas. Each patient speaks with a condition-appropriate emotional tone, displays real-time facial expressions in sync with their speech, and is paired with a matching Furhat face, mask, and ElevenLabs voice based on their age, gender, and cultural background.
+The simulation includes 6 built-in patient personas. Each patient speaks with a condition-appropriate emotional tone, displays real-time facial expressions in sync with their speech, and is paired with a matching Furhat face, mask, and ElevenLabs voice based on their age, gender, and cultural background.
 
-| Name | Demographics | Clinical Presentation |
-|---|---|---|
-| **Ella** | 12F, Finnish | Social anxiety |
-| **Lauri** | 14M, Finnish | Depression |
-| **Emmi** | 8F, Finnish | Separation anxiety |
-| **Mei** | 10F, Chinese | Generalized anxiety |
-| **Asha** | 15F, Indian | Perfectionism and anxiety |
-| **Carlos** | 17M, Mexican | Masked depression |
-| **Dmitri** | 16M, Russian | Irritable depression |
+| Patient | Profile | Patient | Profile | Patient | Profile |
+|---|---|---|---|---|---|
+| <img src="media/faces/white-teen-girl.png" width="60"> | **Ella** — 12F, Finnish<br>Social anxiety | <img src="media/faces/white-teen-boy.png" width="60"> | **Lauri** — 14M, Finnish<br>Depression | <img src="media/faces/child-girl.png" width="60"> | **Emmi** — 8F, Finnish<br>Separation anxiety |
+| <img src="media/faces/asian-teen-girl.png" width="60"> | **Mei** — 10F, Chinese<br>Generalized anxiety | <img src="media/faces/middle-east-teen-girl.png" width="60"> | **Asha** — 15F, Indian<br>Perfectionism and anxiety | <img src="media/faces/latin-teen-boy.png" width="60"> | **Carlos** — 17M, Mexican<br>Masked depression |
 
 Clinicians can also describe any custom patient profile in natural language (e.g., "15-year-old boy struggling with ADHD and school refusal"). The system uses Gemini to generate a complete persona on the fly and automatically assigns the appropriate face, mask, and voice.
+
+![Persona faces](media/persona-faces.png)
 
 ## 🔄 Conversation Flow
 
@@ -49,11 +63,10 @@ graph TD
 
 - **Hardware/Software:** Furhat robot or the local FurhatOS simulator
 - **API Keys:** 
-  - [Google Gemini API Key](https://aistudio.google.com/app/apikey) for LLM generation/classification
-  - [ElevenLabs API Key](https://elevenlabs.io/) for high-quality TTS voices
+  - <a href="https://aistudio.google.com/app/apikey">Google Gemini API Key</a> for LLM generation/classification
+  - <a href="https://elevenlabs.io/">ElevenLabs API Key</a> for high-quality TTS voices
 - **Environment:** 
   - JDK 15 (set `org.gradle.java.home` in your `gradle.properties`)
-  - Python 3.x for running the test suite
 
 ## ⚙️ Setup and Installation
 
@@ -95,23 +108,11 @@ src/main/kotlin/furhatos/app/openaichat/
 │   └── parent.kt       # Shared state behaviour and background gestures (e.g., gaze aversion)
 └── setting/
     └── persona.kt      # Persona data structures and Face/Voice activation logic
-tests/                  # Headless Python test suite
 ```
-
-## 🧪 Automated Testing
-
-The project includes a robust headless testing suite that uses system text-to-speech to interact with the Furhat skill locally. This is useful for validating conversational flows after making changes.
-
-- **Run the full test suite (builds and runs all scenarios):**
-  ```bash
-  python3 tests/build_and_test.py
-  ```
-- **Run individual scenarios:**
-  - `python3 tests/test_runner.py` — Runs the "Happy Path" (Browsing cases, talking to Ella).
-  - `python3 tests/test_error_paths.py` — Runs the "Unhappy Path" (Testing timeouts, handling silence, and generating custom cases).
 
 ## 🙏 Acknowledgements
 
-- Built on [FurhatOS](https://furhatrobotics.com/)
-- Powered by [Google Gemini](https://deepmind.google/technologies/gemini/)
-- Voices by [ElevenLabs](https://elevenlabs.io/)
+- Built on <a href="https://furhatrobotics.com/">FurhatOS</a>
+- Powered by <a href="https://deepmind.google/technologies/gemini/">Google Gemini</a>
+- Voices by <a href="https://elevenlabs.io/">ElevenLabs</a>
+- Developed with AI coding assistance (<a href="https://claude.com/claude-code">Claude Code</a>)
